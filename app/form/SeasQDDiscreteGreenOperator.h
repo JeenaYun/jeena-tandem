@@ -47,7 +47,7 @@ LocalSimplexMesh<DomainDimension> const& mesh,
 
     void update_internal_state(double time, BlockVector const& state,
                                bool state_changed_since_last_rhs, bool require_traction,
-                               bool require_displacement);
+                               bool require_displacement) override;
 
     std::tuple<std::string, std::string> get_checkpoint_filenames(void);
     double get_checkpoint_time_interval(void);
