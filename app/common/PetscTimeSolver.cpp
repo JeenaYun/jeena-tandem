@@ -51,8 +51,15 @@ std::string PetscTimeSolverBase::get_checkpoint_filename(void) {
     return ts_filename_;
 }
 
-void PetscTimeSolverBase::set_checkpoint_filename(std::string fname) {
-    ts_filename_ = fname;
+void PetscTimeSolverBase::set_checkpoint_path(std::string pname) {
+    ts_filepath_ = pname;
+}
+
+void PetscTimeSolverBase::set_checkpoint_filename(void) {
+    tmp_ts_filename_ = ts_filepath_ + tmp_ts_filename_;
+    detect_ts_filename_ = ts_filepath_ + detect_ts_filename_;
+    ts_filename_ = ts_filename_ + detect_ts_filename_;
+    // ts_filename_ = fname;
 }
 
 PetscInt PetscTimeSolverBase::get_checkpoint_frequency(void) {

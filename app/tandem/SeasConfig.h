@@ -78,6 +78,7 @@ struct Config {
     std::optional<std::string> gf_checkpoint_prefix;
     std::optional<std::string> ts_checkpoint_prefix;
     unsigned ts_checkpoint_freq;
+    // unsigned ts_checkpoint_start_ts;
 
     std::optional<GenMeshConfig<DomainDimension>> generate_mesh;
     std::optional<OutputConfig> fault_output;

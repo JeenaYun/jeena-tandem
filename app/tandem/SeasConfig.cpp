@@ -150,6 +150,9 @@ void setConfigSchema(TableSchema<Config>& schema,
         .default_value(20)
         .validator([](auto&& x) { return x > 0; })
         .help("Interval when time integrator will be checkpointed");
+    // schema.add_value("ts_checkpoint_start_ts", &Config::ts_checkpoint_start_ts)
+    //     .validator([](auto&& x) { return x > 0; })
+    //     .help("Starting timestep to be checkpointed");
 
 
     auto& genMeshSchema = schema.add_table("generate_mesh", &Config::generate_mesh);
