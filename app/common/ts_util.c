@@ -304,6 +304,7 @@ PetscErrorCode tandem_TSLoad(TS ts,const char filename[])
   ierr = PetscTestFile(filename,'r',&flg);CHKERRQ(ierr); 
   if (!flg) PetscFunctionReturn(0);
 
+  printf("Load from file %s\n",filename);
   ierr = PetscViewerBinaryOpen(PetscObjectComm((PetscObject)ts),filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
   ierr = _TSLoad(ts,viewer);CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);

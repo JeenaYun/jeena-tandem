@@ -42,6 +42,7 @@ protected:
     // std::string detect_ts_filename_ = get_checkpoint_filename() + "ts_checkpoint.bin";
     std::string tmp_ts_filename_ = "ts_checkpoint_";
     std::string detect_ts_filename_ = "ts_checkpoint.bin";
+    std::string ts_filepath_;
     std::string ts_filename_;
     PetscInt checkpoint_every_nsteps_ = 10;
 };
@@ -79,7 +80,6 @@ public:
 
       // Load an existing checkpoint if it exists
       // CHKERRTHROW(tandem_TSLoad(ts_,ts_filename_.c_str()));
-      printf("Load from file %s\n",detect_ts_filename_.c_str());
       CHKERRTHROW(tandem_TSLoad(ts_,detect_ts_filename_.c_str()));
       CHKERRTHROW(TSSetMaxTime(ts_,upcoming_time));
 
@@ -94,7 +94,7 @@ public:
         // Define new filename for each timestep
         ts_filename_ = tmp_ts_filename_ + std::to_string(curr) + ".bin";
         printf("Write to file %s\n",ts_filename_.c_str());
-        printf("[checkpoint phase] executing steps %d to %d\n",(int)curr,(int)span);
+        // printf("[checkpoint phase] executing steps %d to %d\n",(int)curr,(int)span);
 
         CHKERRTHROW(TSSolve(ts_, ts_state_));
         CHKERRTHROW(TSGetConvergedReason(ts_,&reason));

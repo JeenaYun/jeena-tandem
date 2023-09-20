@@ -263,7 +263,6 @@ void solve_seas_problem(LocalSimplexMesh<DomainDimension> const& mesh, Config co
       }
 
       pckp /= ts.get_checkpoint_filename();
-      printf("pckp: %s\n",pckp.c_str());
       ts.set_checkpoint_path(pckp);
       ts.set_checkpoint_filename();
       ts.set_checkpoint_frequency((PetscInt)cfg.ts_checkpoint_freq);
