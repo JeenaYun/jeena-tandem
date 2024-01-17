@@ -1,5 +1,5 @@
 model_n=perturb_stress
-branch_n=pert8_vsX30_340
+branch_n=continue_after_pert8_vsX10_340
 save_dir=/export/dump/jyun/$model_n/$branch_n
 echo $save_dir
 mkdir -p $save_dir

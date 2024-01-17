@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+"""
+Tools for comparing stress perturbation models
+Last modification: 2024.01.09.
+by Jeena Yun
+"""
 from scipy import interpolate
 import numpy as np
 import argparse
@@ -5,6 +11,20 @@ import change_params
 import setup_shortcut
 ch = change_params.variate()
 sc = setup_shortcut.setups()
+
+def single_case(save_dir,model_n,receivef_strike,target_depth,multiply,mu,print_off):
+    if not print_off: print('Fixed event at depth = %1.2f km'%(target_depth))
+    if not print_off: print('Fixed model: %s%d'%(sc.model_code(model_n),receivef_strike))
+    if not print_off: print('Model Name | Strike | Multiply | Depth | Peak dynamic dCFS [MPa] | Static dynamic dCFS [MPa]')
+    delPn = np.load('%s/ssaf_%s_Pn_pert_mu%02d_%d.npy'%(save_dir,model_n,int(mu*10),receivef_strike))
+    delTs = np.load('%s/ssaf_%s_Ts_pert_mu%02d_%d.npy'%(save_dir,model_n,int(mu*10),receivef_strike))
+    depth_range = np.load('%s/ssaf_%s_dep_stress_pert_mu%02d_%d.npy'%(save_dir,model_n,int(mu*10),receivef_strike))
+    dCFSt = delTs*multiply + mu*(delPn*multiply)
+    dcfs_at_D = [interpolate.interp1d(depth_range,dCFSt[ti])(-target_depth) for ti in range(dCFSt.shape[0])]
+    peak_dynamic = np.max(dcfs_at_D)
+    static = np.mean(dcfs_at_D[-10:])
+    if not print_off: print('%s\t|\t%d\t|\tX%d\t|\t%1.2f\t|\t%1.4f\t\t|\t%1.4f'%(model_n,receivef_strike,multiply,target_depth,peak_dynamic,static))
+    return peak_dynamic,static
 
 def fixed_model(save_dir,model_n,receivef_strike,target_depths,multiplies,mu,print_off):
     if not print_off: print('Fixed model: %s%d'%(sc.model_code(model_n),receivef_strike))

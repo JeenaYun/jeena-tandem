@@ -2,7 +2,7 @@
 '''
 Functions related to plotting cumulative slip vs. depth plot
 By Jeena Yun
-Last modification: 2023.09.09.
+Last modification: 2024.01.09.
 '''
 import numpy as np
 
@@ -98,7 +98,7 @@ def cluster_events(cumslip_outputs):
             event_cluster[ci][1] = k+1
     return np.array(event_cluster)
 
-def analyze_events(cumslip_outputs,rths):
+def analyze_events(cumslip_outputs,rths,print_on=True):
     from scipy import integrate, interpolate
     rupture_length = []
     av_slip = []
@@ -148,7 +148,7 @@ def analyze_events(cumslip_outputs,rths):
         major_pr = np.array(major_pr)
         minor_pr = np.array(minor_pr)
     else:
-        print('No events')
+        if print_on: print('No events')
         rupture_length,av_slip,system_wide,partial_rupture,event_cluster,lead_fs,major_pr,minor_pr = \
                 [],[],[],[],[],[],[],[]
     return rupture_length,av_slip,system_wide,partial_rupture,event_cluster,lead_fs,major_pr,minor_pr

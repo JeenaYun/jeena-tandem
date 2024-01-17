@@ -2,7 +2,7 @@
 '''
 Functions related to plotting cumulative slip vs. depth plot
 By Jeena Yun
-Last modification: 2023.09.09.
+Last modification: 2024.01.09.
 '''
 import numpy as np
 from scipy import interpolate
@@ -70,22 +70,22 @@ def event_times(dep,outputs,Vlb,Vths,cuttime,dt_coseismic,intv,print_on=True):
         varsr = np.array([np.log10(psr[new_its_all[k]:ite_all[k]+1]).max()-np.log10(psr[new_its_all[k]:ite_all[k]+1]).min() for k in range(len(tstart))])
         ii = np.where(varsr/abs(np.log10(Vths))>=0.1)[0]
         if len(ii) < len(tstart):
-            print('Negligible events with SR variation < 0.1Vths:',np.where(varsr/abs(np.log10(Vths))<0.1)[0])
+            if print_on: print('Negligible events with SR variation < 0.1Vths:',np.where(varsr/abs(np.log10(Vths))<0.1)[0])
             tstart = tstart[ii]
             tend = tend[ii]
             evdep = evdep[ii]
         else:
-            print('All safe from the SR variation criterion')
+            if print_on: print('All safe from the SR variation criterion')
 
         # ----- Remove events if it is only activated at specific depth: likely to be unphysical
         num_active_dep = np.array([np.sum(np.sum(sliprate[:,new_its_all[k]:ite_all[k]]>Vths,axis=1)>0) for k in range(len(tstart))])
         if len(num_active_dep>1) > 0:
-            print('Remove single-depth activated event:',np.where(num_active_dep==1)[0])
+            if print_on: print('Remove single-depth activated event:',np.where(num_active_dep==1)[0])
             tstart = tstart[num_active_dep>1]
             tend = tend[num_active_dep>1]
             evdep = evdep[num_active_dep>1]
         else:
-            print('All events activate more than one depth')
+            if print_on: print('All events activate more than one depth')
 
     else:
         tstart, tend, evdep = [],[],[]

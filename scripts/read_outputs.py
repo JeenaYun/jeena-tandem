@@ -2,7 +2,7 @@
 '''
 Functions related to reading tandem outputs: fault/fault_probe/domain_probe
 By Jeena Yun
-Last modification: 2023.11.08.
+Last modification: 2024.01.09.
 '''
 import numpy as np
 from glob import glob
@@ -116,6 +116,7 @@ def read_fault_probe_outputs(save_dir,save_on=True):
     ti = time.time()
     for fname in np.sort(fnames):
         dat = pd.read_csv(fname,delimiter=',',skiprows=1)
+        print(dat.values.shape)
         stloc = pd.read_csv(fname,nrows=1,header=None)
         dep.append(float(stloc.values[0][-1].split(']')[0]))
         outputs.append(dat.values)
@@ -211,42 +212,42 @@ def read_fault_outputs(save_dir,save_on=True):
         print('done!')
     return outputs,dep,params
 
-def load_fault_probe_outputs(save_dir):
-    print('Load saved data: %s/outputs.npy'%(save_dir))
+def load_fault_probe_outputs(save_dir,print_on=True):
+    if print_on: print('Load saved data: %s/outputs.npy'%(save_dir))
     outputs = np.load('%s/outputs.npy'%(save_dir))
-    print('Load saved data: %s/outputs_depthinfo.npy'%(save_dir))
+    if print_on: print('Load saved data: %s/outputs_depthinfo.npy'%(save_dir))
     dep = np.load('%s/outputs_depthinfo.npy'%(save_dir))
-    print('Load saved data: %s/const_params.npy'%(save_dir))
+    if print_on: print('Load saved data: %s/const_params.npy'%(save_dir))
     params = np.load('%s/const_params.npy'%(save_dir),allow_pickle=True)
     return outputs,dep,params
 
-def load_fault_outputs(save_dir):
-    print('Load saved data: %s/fault_outputs.npy'%(save_dir))
+def load_fault_outputs(save_dir,print_on=True):
+    if print_on: print('Load saved data: %s/fault_outputs.npy'%(save_dir))
     outputs = np.load('%s/fault_outputs.npy'%(save_dir))
-    print('Load saved data: %s/fault_outputs_depthinfo.npy'%(save_dir))
+    if print_on: print('Load saved data: %s/fault_outputs_depthinfo.npy'%(save_dir))
     dep = np.load('%s/fault_outputs_depthinfo.npy'%(save_dir))
-    print('Load saved data: %s/const_params.npy'%(save_dir))
+    if print_on: print('Load saved data: %s/const_params.npy'%(save_dir))
     params = np.load('%s/const_params.npy'%(save_dir),allow_pickle=True)
     return outputs,dep,params
 
-def load_domain_probe_outputs(save_dir):
-    print('Load saved data: %s/domain_probe_outputs.npy'%(save_dir))
+def load_domain_probe_outputs(save_dir,print_on=True):
+    if print_on: print('Load saved data: %s/domain_probe_outputs.npy'%(save_dir))
     outputs = np.load('%s/domain_probe_outputs.npy'%(save_dir))
-    print('Load saved data: %s/domain_probe_outputs_xyloc.npy'%(save_dir))
+    if print_on: print('Load saved data: %s/domain_probe_outputs_xyloc.npy'%(save_dir))
     xyloc = np.load('%s/domain_probe_outputs_xyloc.npy'%(save_dir))
     return outputs,xyloc
 
-def load_checkpoint_info(save_dir):
+def load_checkpoint_info(save_dir,print_on=True):
     import pandas as pd
     dat = pd.read_csv('%s/checkpoint_info.csv'%(save_dir),delimiter=',').values
     return dat
 
-def load_short_fault_probe_outputs(save_dir,indx):
-    print('Load saved data: %s/short_outputs_%d'%(save_dir,indx))
+def load_short_fault_probe_outputs(save_dir,indx,print_on=True):
+    if print_on: print('Load saved data: %s/short_outputs_%d'%(save_dir,indx))
     outputs = np.load('%s/short_outputs_%d.npy'%(save_dir,indx))
-    print('Load saved data: %s/outputs_depthinfo'%(save_dir))
+    if print_on: print('Load saved data: %s/outputs_depthinfo'%(save_dir))
     dep = np.load('%s/outputs_depthinfo.npy'%(save_dir))
-    print('Load saved data: %s/const_params.npy'%(save_dir))
+    if print_on: print('Load saved data: %s/const_params.npy'%(save_dir))
     params = np.load('%s/const_params.npy'%(save_dir),allow_pickle=True)
     return outputs,dep,params
 

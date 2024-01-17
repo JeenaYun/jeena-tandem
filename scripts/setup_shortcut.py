@@ -33,10 +33,13 @@ class setups:
             code = split_n[0][0]+split_n[1][0]+split_n[-1]+'_'
         return code
     
-    def write_faultprobe_loc(self,prefix,fid,dmin,dmax,dip=90,write_on=False):
-        import change_params
-        ch = change_params.variate()
-        Hs = ch.load_parameter(prefix)[1]
+    def write_faultprobe_loc(self,prefix_or_Hs,fid,dmin,dmax,dip=90,write_on=False):
+        if isinstance(prefix_or_Hs, str):
+            import change_params
+            ch = change_params.variate()
+            Hs = ch.load_parameter(prefix_or_Hs)[1]
+        else:
+            Hs = prefix_or_Hs
         loc,c,d = [],0,0
         if write_on: fid.write('probes = [\n')
         if dip == 90:

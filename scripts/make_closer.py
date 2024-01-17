@@ -3,7 +3,7 @@
 '''
 A script to match the time of nearest checkpoint to be the nearest foreshock point
 By Jeena Yun
-Last modification: 2023.12.01.
+Last modification: 2024.01.02.
 '''
 import argparse
 import os
@@ -114,7 +114,8 @@ if args.write_on:
                      'mv "/export/dump/jyun/$1/outputs_$2" "/export/dump/jyun/$1/$2"; '
                      'mv "/export/dump/jyun/$1/$2/outputs_$2" "/export/dump/jyun/$1/$2/outputs"; '
                      'python /home/jyun/Tandem/get_plots.py /export/dump/jyun/$1/$2 -c; }\n')
-        fshell.write('read_time_full() { /home/jyun/Tandem/read_time_recursive "/export/dump/jyun/$1/$2"; }\n\n')
+        fshell.write('read_time_full() { /home/jyun/Tandem/read_time_recursive "/export/dump/jyun/$1/$2"; }\n')
+    fshell.write('existckp_full() { ls "/export/dump/jyun/$1/$2"; }\n\n')
 
     # 4.1. Run tandem model
     fshell.write('model_n=%s\n'%(args.model_n))
@@ -126,7 +127,11 @@ if args.write_on:
     fshell.write('cd /export/dump/jyun/$model_n\n')
     fshell.write('mkdir -p outputs_$branch_n\n')
     fshell.write('cd outputs_$branch_n\n')
-    fshell.write('echo "Tandem running in a directory: " $setup_dir\n')
+    fshell.write('echo "Tandem running in a directory: " $setup_dir\n\n')
+
+    fshell.write('# Safety check\n')
+    fshell.write('existckp_full $model_n %s/outputs/checkpoint/step%d\n\n'%(args.output_branch_n,stepnum))
+
     fshell.write('mpiexec -bind-to core -n %d tandem $setup_dir/%s --petsc -ts_checkpoint_load ../%s/outputs/checkpoint/step%d '
                 '-ts_checkpoint_freq_step 1 -ts_checkpoint_freq_physical_time %d -ts_checkpoint_freq_cputime %d '
                 '-options_file $tdhome/options/lu_mumps.cfg -options_file $tdhome/options/rk45.cfg -ts_monitor > $setup_dir/messages_$branch_n.log %s\n\n'\

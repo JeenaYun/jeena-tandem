@@ -2,7 +2,7 @@
 '''
 Functions related to plotting variables as time series
 By Jeena Yun
-Last modification: 2023.12.04.
+Last modification: 2024.01.05.
 '''
 import numpy as np
 import matplotlib.pyplot as plt
@@ -44,7 +44,7 @@ def phi2theta(prefix,raw_phi,dep,dep_index):
     f0 = others[-1]*np.ones(len(phi))
     V0 = others[-2]*np.ones(len(phi))
 
-    theta = np.exp(np.divide(phi-f0,b) - np.log(V0)+np.log(L))
+    theta = np.divide(np.exp(np.divide(phi-f0,b))*L,V0)
     return theta
 
 def get_var(outputs,dep,target_depth,target_var,plot_in_sec,abs_on,prefix):

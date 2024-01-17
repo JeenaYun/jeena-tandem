@@ -16,14 +16,18 @@ cd /export/dump/jyun/$model_n
 echo "Create directory: " /export/dump/jyun/$model_n/outputs_$branch_n
 mkdir -p outputs_$branch_n
 cd outputs_$branch_n
+mkdir -p fault_output
 # mkdir -p domain_output
 echo "Tandem running in a directory: " $setup_dir
 
 # --- With checkpointing every certain time steps, physical time & cpu time
 # mpiexec -bind-to core -n 40 tandem $setup_dir/parameters_reference.toml --petsc -options_file $tdhome/options/lu_mumps.cfg -options_file $tdhome/options/rk45.cfg -ts_monitor -ts_max_steps 70000 -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 1000000000 -ts_checkpoint_freq_cputime 60 -ts_checkpoint_path ckp_$branch_n > $setup_dir/messages_$branch_n.log &
 # mpiexec -bind-to core -n 40 tandem $setup_dir/parameters_reference.toml --petsc -options_file $tdhome/options/lu_mumps.cfg -options_file $tdhome/options/rk45.cfg -ts_monitor -ts_max_steps 70000 -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 1000000000 -ts_checkpoint_freq_cputime 60 -ts_checkpoint_path checkpoint > $setup_dir/messages_$branch_n.log &
-mpiexec -bind-to core -n 60 tandem $setup_dir/parameters_hf10_reference.toml --petsc -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 1000000000 -ts_checkpoint_freq_cputime 60 -ts_checkpoint_path checkpoint -options_file $tdhome/options/lu_mumps.cfg -options_file $tdhome/options/rk45.cfg -ts_monitor > $setup_dir/messages_$branch_n.log &
+mpiexec -bind-to core -n 80 tandem $setup_dir/parameters_hf10_reference.toml --petsc -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 1000000000 -ts_checkpoint_freq_cputime 60 -ts_checkpoint_path checkpoint -options_file $tdhome/options/lu_mumps.cfg -options_file $tdhome/options/rk45.cfg -ts_monitor > $setup_dir/messages_$branch_n.log &
 # mpiexec -bind-to core -n 60 tandem $setup_dir/p10Dc2.toml --petsc -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 1000000000 -ts_checkpoint_freq_cputime 60 -ts_checkpoint_path checkpoint -options_file $tdhome/options/lu_mumps.cfg -options_file $tdhome/options/rk45.cfg -ts_monitor > $setup_dir/messages_$branch_n.log &
+
+# --- Build mesh
+# mpiexec -bind-to core -n 80 tandem $setup_dir/build_GF.toml --petsc -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 1000000000 -ts_checkpoint_freq_cputime 60 -ts_checkpoint_path checkpoint -options_file $tdhome/options/lu_mumps.cfg -options_file $tdhome/options/rk45.cfg -ts_monitor > $setup_dir/messages_$branch_n.log &
 
 # --- Load checkpointing
 # mpiexec -bind-to core -n 40 tandem $setup_dir/parameters_reference.toml --petsc -ts_checkpoint_load ../reference/outputs/checkpoint/step1555650 -ts_max_steps 1555660 -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 1000000000 -ts_checkpoint_freq_cputime 120 -options_file $tdhome/options/lu_mumps.cfg -options_file $tdhome/options/rk45.cfg -ts_monitor > $setup_dir/messages_$branch_n.log &
