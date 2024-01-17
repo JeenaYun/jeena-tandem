@@ -1,0 +1,20 @@
+69999 TS dt 0.000940925 time 1.38869e+06
+[TSCheckpoint] Triggered by: "step"
+[ckp_reference] directory exists
+[ckp_reference/step70000] directory created
+[TSCheckpoint]   writing checkpoint data for step 70000 -> path ckp_reference/step70000
+70000 TS dt 0.000918106 time 1.38869e+06
+
+
+========= Summary =========
+date_time=Sat Oct 28 15:31:43 2023
+code_version=v1.0-133-g8d5f341
+solve_time=3289.66
+time_steps=70000
+step_rejections=3946
+min_time_step=0.000153992
+max_time_step=69905.6
+dofs_domain=525756
+dofs_fault=13440
+mesh_size=55.9832
+===========================

@@ -1,0 +1,20 @@
+4995 TS dt 0.0451221 time 1.19055e+06
+4996 TS dt 0.0471173 time 1.19055e+06
+4997 TS dt 0.0464354 time 1.19055e+06
+4998 TS dt 0.0424181 time 1.19055e+06
+4999 TS dt 0.0386419 time 1.19055e+06
+5000 TS dt 0.0380689 time 1.19055e+06
+
+
+========= Summary =========
+date_time=Wed Nov 22 20:06:01 2023
+code_version=v1.0-133-g8d5f341
+solve_time=32.5926
+time_steps=5000
+step_rejections=58
+min_time_step=0.0386419
+max_time_step=3450.54
+dofs_domain=525756
+dofs_fault=13440
+mesh_size=55.9832
+===========================

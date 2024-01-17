@@ -1,0 +1,20 @@
+70499 TS dt 0.00084782 time 1.38869e+06
+[TSCheckpoint] Triggered by: "step"
+[checkpoint] directory exists
+[checkpoint/step70500] directory created
+[TSCheckpoint]   writing checkpoint data for step 70500 -> path checkpoint/step70500
+70500 TS dt 0.0009176 time 1.38869e+06
+
+
+========= Summary =========
+date_time=Sat Oct 28 22:39:16 2023
+code_version=v1.0-133-g8d5f341
+solve_time=19.8054
+time_steps=70500
+step_rejections=23
+min_time_step=0.000769811
+max_time_step=0.000987246
+dofs_domain=525756
+dofs_fault=13440
+mesh_size=55.9832
+===========================

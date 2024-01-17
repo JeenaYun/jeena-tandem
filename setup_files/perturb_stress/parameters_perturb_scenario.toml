@@ -3,7 +3,7 @@ mesh_file = "ridgecrest_hf25.msh"
 mode = "QDGreen"
 type = "poisson"
 lib = "scenario_perturb.lua"
-scenario = "vs340_3092410"
+scenario = "vsX10_340_1515453"
 ref_normal = [-1, 0]
 boundary_linear = true
 

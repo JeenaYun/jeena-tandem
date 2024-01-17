@@ -1,0 +1,20 @@
+TS -ts_checkpoint_load ../match8/outputs/checkpoint/step1515453
+[TSCheckpoint]   loading checkpoint data <- path ../match8/outputs/checkpoint/step1515453
+1515453 TS dt 0.01 time 2.71209e+10
+[TSCheckpoint] Triggered by: "step"
+[TSCheckpoint] Triggered by: "physical_time"
+[checkpoint] directory exists
+[checkpoint/step1515454] directory created
+[TSCheckpoint]   writing checkpoint data for step 1515454 -> path checkpoint/step1515454
+1515454 TS dt 0.01 time 2.71209e+10
+[TSCheckpoint] Triggered by: "step"
+[checkpoint] directory exists
+[checkpoint/step1515455] directory created
+[TSCheckpoint]   writing checkpoint data for step 1515455 -> path checkpoint/step1515455
+sigma_n = 55.499
+|tau| = 55760.4
+psi = -28.7174
+L = 0
+U = 15261.1
+F(L) = 55760.4
+F(U) = 2.52169e-12

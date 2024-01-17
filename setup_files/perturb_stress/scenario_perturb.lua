@@ -16,3 +16,10 @@ vf330_1515453 = ridgecrest54.new{model_n='vert_fast',strike=330,fcoeff=0.4,dt=0.
 vs340_7176480 = ridgecrest54.new{model_n='vert_slow',strike=340,fcoeff=0.4,dt=0.01,init_time=1.162875225174398804e+11}
 vf330_4915642 = ridgecrest54.new{model_n='vert_fast',strike=330,fcoeff=0.4,dt=0.01,init_time=8.267655560204478455e+10}
 ds350_4915642 = ridgecrest54.new{model_n='dipping_slow',strike=350,fcoeff=0.4,dt=0.01,init_time=8.267655560204478455e+10}
+vs340_1516355 = ridgecrest54.new{model_n='vert_slow',strike=340,fcoeff=0.4,dt=0.01,init_time=2.712098594139096069e+10}
+vs340_1509747 = ridgecrest54.new{model_n='vert_slow',strike=340,fcoeff=0.4,dt=0.01,init_time=2.712089594139096069e+10}
+vs340_1517106 = ridgecrest54.new{model_n='vert_slow',strike=340,fcoeff=0.4,dt=0.01,init_time=2.712100034139096069e+10}
+vsX10_340_1515453 = ridgecrest54.new{model_n='vert_slow_X10',strike=340,fcoeff=0.4,dt=0.01,init_time=2.712094562139096069e+10}
+vsX5_340_1515453 = ridgecrest54.new{model_n='vert_slow_X5',strike=340,fcoeff=0.4,dt=0.01,init_time=2.712094562139096069e+10}
+vsX3_340_1515453 = ridgecrest54.new{model_n='vert_slow_X3',strike=340,fcoeff=0.4,dt=0.01,init_time=2.712094562139096069e+10}
+vs340_1515030 = ridgecrest54.new{model_n='vert_slow',strike=340,fcoeff=0.4,dt=0.01,init_time=2.712093194139096069e+10}

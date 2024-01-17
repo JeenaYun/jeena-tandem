@@ -1,19 +1,19 @@
-4967138 TS dt 1.73116 time 8.26766e+10
-4967139 TS dt 1.5686 time 8.26766e+10
-4967140 TS dt 1.53489 time 8.26766e+10
-4967141 TS dt 1.66836 time 8.26766e+10
-4967142 TS dt 1.82378 time 8.26766e+10
-4967143 TS dt 1.80028 time 8.26766e+10
+4967138 TS dt 3.31454 time 8.26766e+10
+4967139 TS dt 3.03249 time 8.26766e+10
+4967140 TS dt 3.28568 time 8.26766e+10
+4967141 TS dt 3.47256 time 8.26766e+10
+4967142 TS dt 3.3752 time 8.26766e+10
+4967143 TS dt 3.13986 time 8.26766e+10
 
 
 ========= Summary =========
-date_time=Sat Nov 18 02:59:39 2023
+date_time=Fri Dec  8 02:01:29 2023
 code_version=v1.0-133-g8d5f341
-solve_time=3892.77
+solve_time=5985.19
 time_steps=4967143
-step_rejections=3107
+step_rejections=3082
 min_time_step=0.00012207
-max_time_step=512.461
+max_time_step=427.909
 dofs_domain=525756
 dofs_fault=13440
 mesh_size=55.9832

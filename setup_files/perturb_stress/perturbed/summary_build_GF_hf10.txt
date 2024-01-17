@@ -1,0 +1,20 @@
+TS -ts_checkpoint_storage_limited_size 1
+[checkpoint] directory created
+DOFs (domain): 1138984
+DOFs (fault): 33600
+Mesh size: 56.6473
+0 TS dt 0. time 0.
+
+
+========= Summary =========
+date_time=Wed Jan 17 22:06:56 2024
+code_version=v1.0-62-g8a87903
+solve_time=0.000427459
+time_steps=0
+step_rejections=0
+min_time_step=1.79769e+308
+max_time_step=-1.79769e+308
+dofs_domain=1138984
+dofs_fault=33600
+mesh_size=56.6473
+===========================

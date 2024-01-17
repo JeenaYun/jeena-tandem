@@ -1,4 +1,4 @@
-final_time = 27120985941.390960693359375000
+final_time = 27120931941.390960693359375000
 mesh_file = "ridgecrest_hf25.msh"
 mode = "QDGreen"
 type = "poisson"
@@ -7,7 +7,7 @@ scenario = "bp1_sym"
 ref_normal = [-1, 0]
 boundary_linear = true
 
-gf_checkpoint_prefix = "/home/jyun/Tandem/perturb_stress/greensfun/hf25"
+gf_checkpoint_prefix = "/export/dump/jyun/GreensFunctions/ridgecrest_hf25"
 
 [fault_probe_output]
 prefix = "faultp_"

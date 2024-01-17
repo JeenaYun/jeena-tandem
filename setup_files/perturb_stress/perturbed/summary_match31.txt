@@ -1,0 +1,20 @@
+4915641 TS dt 350.901 time 8.26766e+10
+[TSCheckpoint] Triggered by: "step"
+[checkpoint] directory exists
+[checkpoint/step4915642] directory created
+[TSCheckpoint]   writing checkpoint data for step 4915642 -> path checkpoint/step4915642
+4915642 TS dt 407.764 time 8.26766e+10
+
+
+========= Summary =========
+date_time=Fri Nov 17 05:51:40 2023
+code_version=v1.0-133-g8d5f341
+solve_time=2.58724
+time_steps=4915642
+step_rejections=3
+min_time_step=350.901
+max_time_step=480.013
+dofs_domain=525756
+dofs_fault=13440
+mesh_size=55.9832
+===========================

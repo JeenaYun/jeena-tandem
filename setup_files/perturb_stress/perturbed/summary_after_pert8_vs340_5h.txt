@@ -1,0 +1,20 @@
+1567851 TS dt 0.000632644 time 2.7121e+10
+1567852 TS dt 0.000668628 time 2.7121e+10
+1567853 TS dt 0.000638091 time 2.7121e+10
+1567854 TS dt 0.000578846 time 2.7121e+10
+1567855 TS dt 0.000561033 time 2.7121e+10
+1567856 TS dt 0.000604599 time 2.7121e+10
+
+
+========= Summary =========
+date_time=Wed Jan  3 03:56:29 2024
+code_version=v1.0-133-g8d5f341
+solve_time=11193.6
+time_steps=1567856
+step_rejections=2064
+min_time_step=0.00038147
+max_time_step=64.3493
+dofs_domain=525756
+dofs_fault=13440
+mesh_size=55.9832
+===========================

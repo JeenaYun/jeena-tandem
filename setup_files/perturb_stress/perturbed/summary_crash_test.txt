@@ -1,0 +1,20 @@
+70595 TS dt 0.000959119 time 1.38869e+06
+70596 TS dt 0.000896985 time 1.38869e+06
+70597 TS dt 0.000837941 time 1.38869e+06
+70598 TS dt 0.00085083 time 1.38869e+06
+70599 TS dt 0.000923861 time 1.38869e+06
+70600 TS dt 0.000973921 time 1.38869e+06
+
+
+========= Summary =========
+date_time=Wed Nov 22 07:36:49 2023
+code_version=v1.0-133-g8d5f341
+solve_time=3.97747
+time_steps=70600
+step_rejections=2
+min_time_step=0.000813387
+max_time_step=0.000984475
+dofs_domain=525756
+dofs_fault=13440
+mesh_size=55.9832
+===========================
