@@ -1,0 +1,20 @@
+1040 TS dt 201402. time 6.2229e+07
+1041 TS dt 188561. time 6.24304e+07
+1042 TS dt 197493. time 6.26189e+07
+1043 TS dt 127794. time 6.28164e+07
+1044 TS dt 127794. time 6.29442e+07
+1045 TS dt 346618. time 6.3072e+07
+
+
+========= Summary =========
+date_time=Wed Jan 17 01:02:49 2024
+code_version=v1.0-62-g8a87903
+solve_time=9.33124
+time_steps=1045
+step_rejections=53
+min_time_step=0.1
+max_time_step=385949
+dofs_domain=30744
+dofs_fault=1120
+mesh_size=58.8301
+===========================

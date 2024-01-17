@@ -1,0 +1,20 @@
+8888 TS dt 24055.3 time 6.29734e+07
+8889 TS dt 23640.7 time 6.29975e+07
+8890 TS dt 23752.8 time 6.30211e+07
+8891 TS dt 13574.1 time 6.30449e+07
+8892 TS dt 13574.1 time 6.30584e+07
+8893 TS dt 29925.1 time 6.3072e+07
+
+
+========= Summary =========
+date_time=Wed Jan 17 02:08:27 2024
+code_version=v1.0-62-g8a87903
+solve_time=291.711
+time_steps=8893
+step_rejections=320
+min_time_step=0.1
+max_time_step=381462
+dofs_domain=79856
+dofs_fault=5600
+mesh_size=58.095
+===========================

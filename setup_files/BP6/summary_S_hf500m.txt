@@ -1,0 +1,20 @@
+2383 TS dt 67882.7 time 6.26912e+07
+2384 TS dt 68551.9 time 6.27591e+07
+2385 TS dt 77458.4 time 6.28276e+07
+2386 TS dt 83448.6 time 6.29051e+07
+2387 TS dt 83448.6 time 6.29886e+07
+2388 TS dt 112486. time 6.3072e+07
+
+
+========= Summary =========
+date_time=Sat Jan  6 23:56:22 2024
+code_version=v1.0-62-g8a87903
+solve_time=12.817
+time_steps=2388
+step_rejections=529
+min_time_step=0.1
+max_time_step=414129
+dofs_domain=30744
+dofs_fault=1120
+mesh_size=58.8301
+===========================

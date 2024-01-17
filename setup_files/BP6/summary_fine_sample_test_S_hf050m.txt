@@ -1,0 +1,20 @@
+21220 TS dt 8680.87 time 6.30357e+07
+21221 TS dt 8720.55 time 6.30444e+07
+21222 TS dt 7902.86 time 6.30531e+07
+21223 TS dt 5478.11 time 6.3061e+07
+21224 TS dt 5478.11 time 6.30665e+07
+21225 TS dt 11042. time 6.3072e+07
+
+
+========= Summary =========
+date_time=Tue Jan 16 21:18:18 2024
+code_version=v1.0-62-g8a87903
+solve_time=1869.58
+time_steps=21225
+step_rejections=882
+min_time_step=0.1
+max_time_step=338871
+dofs_domain=121128
+dofs_fault=11200
+mesh_size=58.0586
+===========================

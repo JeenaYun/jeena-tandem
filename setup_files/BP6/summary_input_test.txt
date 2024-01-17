@@ -1,0 +1,20 @@
+35 TS dt 175686. time 2.52493e+06
+36 TS dt 118587. time 2.62906e+06
+37 TS dt 113634. time 2.74765e+06
+38 TS dt 85116.2 time 2.82977e+06
+39 TS dt 85116.2 time 2.91488e+06
+40 TS dt 78250.8 time 3e+06
+
+
+========= Summary =========
+date_time=Sat Jan  6 01:04:26 2024
+code_version=v1.0-133-g8d5f341
+solve_time=7.50141
+time_steps=40
+step_rejections=4
+min_time_step=0.1
+max_time_step=327540
+dofs_domain=121128
+dofs_fault=11200
+mesh_size=58.0586
+===========================
