@@ -1,0 +1,41 @@
+final_time = 22075200000
+mesh_file = "bp1_sym.msh"
+mode = "QDGreen"
+type = "poisson"
+lib = "bp1.lua"
+scenario = "bp1_sym"
+ref_normal = [-1, 0]
+boundary_linear = true
+
+gf_checkpoint_prefix = "/hppfs/scratch/06/di75weg/GreensFunctions/bp1_sym"
+
+[fault_probe_output]
+prefix = "faultp_"
+t_max = 9460800
+probes = [
+    { name = "fp000", x = [0.0, 0.0] },
+    { name = "fp025", x = [0.0, -2.5] },
+    { name = "fp050", x = [0.0, -5.0] },
+    { name = "fp075", x = [0.0, -7.5] },
+    { name = "fp100", x = [0.0, -10.0] },
+    { name = "fp125", x = [0.0, -12.5] },
+    { name = "fp150", x = [0.0, -15.0] },
+    { name = "fp175", x = [0.0, -17.5] },
+    { name = "fp200", x = [0.0, -20.0] },
+    { name = "fp250", x = [0.0, -25.0] },
+    { name = "fp300", x = [0.0, -30.0] },
+    { name = "fp350", x = [0.0, -35.0] }
+]
+
+[fault_output]
+prefix = "fault"
+t_max = 9460800
+
+[domain_probe_output]
+prefix = "domainp_"
+t_max = 9460800
+probes = [
+    { name = "dp100", x = [10.0, 0.0] },
+    { name = "dp200", x = [20.0, 0.0] },
+    { name = "dp300", x = [30.0, 0.0] }
+]
