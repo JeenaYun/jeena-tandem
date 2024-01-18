@@ -121,7 +121,8 @@ public:
 
     double state_rhs(std::size_t index, double V, double psi) const {
         double myL = p_[index].get<L>();
-        return cp_.b * cp_.V0 / myL * (exp((cp_.f0 - psi) / cp_.b) - V / cp_.V0);
+        // return cp_.b * cp_.V0 / myL * (exp((cp_.f0 - psi) / cp_.b) - V / cp_.V0); // Ageing law
+        return - cp_.b * V / myL * (log(V / cp_.V0) + (psi - cp_.f0) / cp_.b); // Slip law
     }
 
     auto param_names() const {
