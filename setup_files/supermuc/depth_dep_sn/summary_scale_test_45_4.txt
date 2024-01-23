@@ -1,0 +1,20 @@
+301 TS dt 1173.97 time 1.4547e+06
+302 TS dt 1235.19 time 1.45588e+06
+303 TS dt 1128.69 time 1.45711e+06
+304 TS dt 954.261 time 1.45809e+06
+305 TS dt 954.261 time 1.45905e+06
+306 TS dt 1296.06 time 1.46e+06
+
+
+========= Summary =========
+date_time=Tue Jan 23 03:01:19 2024
+code_version=8a87903
+solve_time=162.285
+time_steps=306
+step_rejections=63
+min_time_step=0.1
+max_time_step=32161
+dofs_domain=2322208
+dofs_fault=67200
+mesh_size=58.9294
+===========================

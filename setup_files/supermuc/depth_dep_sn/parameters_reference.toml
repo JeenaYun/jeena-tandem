@@ -1,5 +1,5 @@
-final_time = 157680000000
-mesh_file = "ridgecrest_hf25.msh"
+final_time = 31536000000
+mesh_file = "ridgecrest_hf05.msh"
 mode = "QDGreen"
 type = "poisson"
 lib = "matfric_Fourier_main_reference.lua"
@@ -7,7 +7,11 @@ scenario = "bp1_sym"
 ref_normal = [-1, 0]
 boundary_linear = true
 
-gf_checkpoint_prefix = "/hppfs/scratch/06/di75weg/GreensFunctions/ridgecrest_hf25"
+gf_checkpoint_prefix = "/hppfs/scratch/06/di75weg/GreensFunctions/depth_dep_sn/ridgecrest_hf05"
+
+[fault_output]
+prefix = "fault_"
+t_max = 9460800
 
 [fault_probe_output]
 prefix = "faultp_"

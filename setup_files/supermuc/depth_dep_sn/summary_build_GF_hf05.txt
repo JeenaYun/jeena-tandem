@@ -1,0 +1,20 @@
+write_discrete_greens_traction() 1.16e-02 (sec)
+TS -ts_checkpoint_storage_type none
+DOFs (domain): 2322208
+DOFs (fault): 67200
+Mesh size: 58.9294
+0 TS dt 0. time 0.
+
+
+========= Summary =========
+date_time=Mon Jan 22 22:57:32 2024
+code_version=8a87903
+solve_time=0.00120108
+time_steps=0
+step_rejections=0
+min_time_step=1.79769e+308
+max_time_step=-1.79769e+308
+dofs_domain=2322208
+dofs_fault=67200
+mesh_size=58.9294
+===========================

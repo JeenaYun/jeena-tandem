@@ -18,8 +18,7 @@
 
 #SBATCH --ear=off
 
-#Number of nodes and MPI tasks per node:
-#SBATCH --ntasks-per-node=1
+module load slurm_setup
 
 #Run the program:
 export OMP_NUM_THREADS=1

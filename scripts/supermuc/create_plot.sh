@@ -3,11 +3,11 @@
 
 #SBATCH -J plot
 #Output and error (also --output, --error):
-#SBATCH -o ./messages_%x.out
-#SBATCH -e ./messages_%x.err
+#SBATCH -o ./messages/%x.out
+#SBATCH -e ./messages/%x.err
 
 #Initial working directory:
-#SBATCH --chdir=/hppfs/work/pn49ha/di75weg/jeena-tandem/setup_files/supermuc
+#SBATCH --chdir=/hppfs/work/pn49ha/di75weg
 
 #Notification and type
 #SBATCH --mail-type=END
@@ -45,5 +45,5 @@ save_dir=$SCRATCH/$model_n/$branch_n
 
 echo $SCRATCH'/'$model_n'/'$branch_n
 
-mpiexec -n $SLURM_NTASKS python3.8 $plottool_dir/get_plots.py $save_dir -dtcr 2 -dtco 0.5 -Vths 0.01 -srvar 0 -im sliprate -ts
+mpiexec -n $SLURM_NTASKS python3.8 $plottool_dir/get_plots.py $save_dir -c -dtcr 2 -dtco 0.5 -Vths 0.01 -srvar 0 -im sliprate -ts
 # mpiexec -n $SLURM_NTASKS python3.8 $plottool_dir/get_plots.py $save_dir -dtcr 2 -dtco 0.5 -Vths 0.2 -im sliprate -ts

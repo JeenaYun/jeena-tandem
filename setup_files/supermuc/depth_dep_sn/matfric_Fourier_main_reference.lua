@@ -104,10 +104,10 @@ function BP1:L(x, y)
     if y > 0 then
         het_L = self.Dc
     end
-    file = io.open ('/hppfs/work/pn49ha/di75weg/depth_dep_sn/dc_profile_reference','a')
-    io.output(file)
-    io.write(y,'\t',het_L,'\n')
-    io.close(file)
+    -- file = io.open ('/hppfs/work/pn49ha/di75weg/depth_dep_sn/dc_profile_reference','a')
+    -- io.output(file)
+    -- io.write(y,'\t',het_L,'\n')
+    -- io.close(file)
     return het_L
 end
 
@@ -139,27 +139,17 @@ function BP1:a(x, y)
     local z = -y
     local _ab = self:ab(x,y)
     local _a = _ab + self.b
-    file = io.open ('/hppfs/work/pn49ha/di75weg/depth_dep_sn/ab_profile_reference','a')
-    io.output(file)
-    io.write(y,'\t',_a,'\t',self.b,'\n')
-    io.close(file)
+    -- file = io.open ('/hppfs/work/pn49ha/di75weg/depth_dep_sn/ab_profile_reference','a')
+    -- io.output(file)
+    -- io.write(y,'\t',_a,'\t',self.b,'\n')
+    -- io.close(file)
     return _a
 end
 
 function BP1:tau_pre(x, y)
     local z = -y
-    local _tau1 = self.tau2 + (self.tau2 - self.tau1) * (z - self.H2) / self.H2
-    local _tau2 = self.tau2 + (self.tau3 - self.tau2) * (z - self.H) / self.h
-    local _tau = self.tau3
-    local _sn = self:sn_pre(x,y)
-
-    if z < self.H2 then
-        _tau = _tau1
-    elseif z < self.H then
-        _tau = self.tau2
-    elseif z < self.H + self.h then
-        _tau = _tau2
-    end
+    local sn = self:sn_pre(x, y)
+    local _tau = -(sn*self.f0 + 4.0)
     return _tau
 end
 
