@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Tools for making varitions from the base model
-Last modification: 2023.11.08.
+Last modification: 2024.01.18.
 by Jeena Yun
 """
 import numpy as np
@@ -17,12 +17,15 @@ class variate:
 
     def get_setup_dir(self):
         if 'j4yun' in os.getcwd(): # local
-            setup_dir = '/Users/j4yun/Dropbox/Codes/Ridgecrest_CSC/jeena-tandem/setup_files/supermuc'
+            # setup_dir = '/Users/j4yun/Dropbox/Codes/Ridgecrest_CSC/jeena-tandem/setup_files/supermuc'
+            self.setup_dir = '/Users/j4yun/Dropbox/Codes/Ridgecrest_CSC/jeena-tandem/setup_files'
         elif 'di75weg' in os.getcwd(): # supermuc
-            setup_dir = '/hppfs/work/pn49ha/di75weg/jeena-tandem/setup_files/supermuc'
+            self.setup_dir = '/hppfs/work/pn49ha/di75weg/jeena-tandem/setup_files/supermuc'
         elif 'jyun' in os.getcwd(): # LMU server
-            setup_dir = '/home/jyun/Tandem'
-        return setup_dir
+            self.setup_dir = '/home/jyun/Tandem'
+
+    def change_setup_dir(self,new_setup_dir):
+        self.setup_dir = new_setup_dir
     
     def extract_prefix(self,save_dir):
         if 'models' in save_dir: # local
@@ -34,6 +37,10 @@ class variate:
         return prefix
     
     def load_parameter(self,prefix,print_on=True):
+        if 'lithostatic_sn' in prefix or 'depth_dep_sn' in prefix:
+            self.get_setup_dir()
+            new_setup_dir = self.setup_dir + '/supermuc'
+            self.change_setup_dir(new_setup_dir)
         fsigma,ff0,fab,fdc,newb,newL,dz = self.what_is_varied(prefix,print_on)
         y,Hs,a,b,a_b,tau0,sigma0,L,others = self.fractal_param(prefix,fsigma,fab,fdc,ff0,print_on)
         y,Hs,a,b,a_b,tau0,sigma0,L,others = self.change_uniform(y,Hs,a,b,a_b,tau0,sigma0,L,others,newb,newL,print_on)
@@ -46,6 +53,7 @@ class variate:
         return output_var
 
     def get_model_n(self,prefix,indicator,print_on=True):
+        tail = ' '
         if 'BP1' in prefix:
             model_n = None
         elif indicator == 'DZ' and indicator in prefix:
@@ -76,21 +84,29 @@ class variate:
                 model_n = 2
             if indicator == 'Dc':
                 model_n = 2
+        
+        if 'depth_dep_sn' in prefix:
+            if indicator == 'v':
+                model_n,tail = 6, ' depth-dependent '
+            if indicator == 'ab':
+                model_n = 2
+            if indicator == 'Dc':
+                model_n = 2
 
-        return model_n
+        return model_n,tail
 
     def what_is_varied(self,prefix,print_on=True):
-        fsigma = self.get_model_n(prefix,'v')
-        ff0 = self.get_model_n(prefix,'f0')
-        fab = self.get_model_n(prefix,'ab')
-        fdc = self.get_model_n(prefix,'Dc')
-        newb = self.get_model_n(prefix,'B')
-        newL = self.get_model_n(prefix,'L')
-        dz = self.get_model_n(prefix,'DZ')
+        fsigma,tail = self.get_model_n(prefix,'v')
+        ff0,_ = self.get_model_n(prefix,'f0')
+        fab,_ = self.get_model_n(prefix,'ab')
+        fdc,_ = self.get_model_n(prefix,'Dc')
+        newb,_ = self.get_model_n(prefix,'B')
+        newL,_ = self.get_model_n(prefix,'L')
+        dz,_ = self.get_model_n(prefix,'DZ')
 
         if print_on:
             if fsigma is not None:
-                print('Fractal normal stress model ver.%d'%(fsigma))
+                print('Fractal%snormal stress model ver.%d'%(tail,fsigma))
             if ff0 is not None:
                 print('Fractal f0 model ver.%d'%(ff0))
             if fab is not None:
@@ -150,22 +166,23 @@ class variate:
         return [het_var,mesh_y]
 
     def fractal_param(self,prefix,fsigma=None,fab=None,fdc=None,ff0=None,print_on=True):
-        y,Hs,_a,_b,_ab,tau0,_sigma0,_L,_others = sc.params(prefix)
-        others = _others
+        y,Hs,_a,_b,_ab,_tau0,_sigma0,_L,others = sc.params(prefix)
 
         if fsigma is not None:
             if fsigma == 0:
-                fname = '%s/Thakur20_hetero_stress/fractal_snpre'%(self.get_setup_dir())
+                fname = '%s/Thakur20_hetero_stress/fractal_snpre'%(self.setup_dir)
             elif 'litho' in prefix:
-                fname = '%s/lithostatic_sn/fractal_litho_snpre_%02d'%(self.get_setup_dir(),fsigma)
+                fname = '%s/lithostatic_sn/fractal_litho_snpre_%02d'%(self.setup_dir,fsigma)
+            elif 'depth_dep' in prefix:
+                fname = '%s/depth_dep_sn/fractal_litho_snpre_%02d'%(self.setup_dir,fsigma)
             else:
-                fname = '%s/Thakur20_hetero_stress/fractal_snpre_%02d'%(self.get_setup_dir(),fsigma)
+                fname = '%s/Thakur20_hetero_stress/fractal_snpre_%02d'%(self.setup_dir,fsigma)
             sigma0 = self.read_fractal_file(fname,print_on)
         else:
             sigma0 = _sigma0
 
         if fab is not None:
-            fname = '%s/Thakur20_various_fractal_profiles/fractal_ab_%02d'%(self.get_setup_dir(),fab)
+            fname = '%s/Thakur20_various_fractal_profiles/fractal_ab_%02d'%(self.setup_dir,fab)
             a_b = self.read_fractal_file(fname,print_on)
             b = self.same_length(y,_b,a_b[1])
             a = a_b[0] + b
@@ -175,16 +192,22 @@ class variate:
             b = _b
 
         if ff0 is not None:
-            fname = '%s/Thakur20_various_fractal_profiles/fractal_f0_%02d'%(self.get_setup_dir(),ff0)
+            fname = '%s/Thakur20_various_fractal_profiles/fractal_f0_%02d'%(self.setup_dir,ff0)
             het_f0 = self.read_fractal_file(fname,print_on)
             others[-1] = het_f0
 
         if fdc is not None:
-            fname = '%s/Thakur20_various_fractal_profiles/fractal_Dc_%02d'%(self.get_setup_dir(),fdc)
+            fname = '%s/Thakur20_various_fractal_profiles/fractal_Dc_%02d'%(self.setup_dir,fdc)
             het_dc = self.read_fractal_file(fname,print_on)
             L = het_dc
         else:
             L = _L
+
+        if 'depth_dep_sn' in prefix:
+            new_tau0 = -(sigma0[0]*others[-1] + 4.0)
+            tau0 = self.same_length(sigma0[1],new_tau0,y)
+        else:
+            tau0 = _tau0
 
         return y,Hs,a,b,a_b,tau0,sigma0,L,others
     
@@ -240,7 +263,7 @@ class variate:
         # ----- Mesh points where normal stress will be evaluated
         if based_on_mesh:
             print('Method 1) Read in actaul mesh points')  # - not used anymore
-            fid = open('%s/Thakur20_hetero_stress/meshpoints.txt'%(self.get_setup_dir()),'r')
+            fid = open('%s/Thakur20_hetero_stress/meshpoints.txt'%(self.setup_dir),'r')
             lines = fid.readlines()
             mesh_x = []
             mesh_y = []
