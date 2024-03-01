@@ -1,0 +1,7 @@
+final_time = 22075200000
+mode = "QD"
+lib = "bp1.lua"
+type="poisson"
+scenario = "bp1_sym"
+ref_normal = [-1, 0]
+boundary_linear = true
