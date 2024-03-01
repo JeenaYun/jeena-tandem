@@ -1,0 +1,46 @@
+final_time = 22075200000
+mesh_file = "bp1_sym.msh"
+mode = "QDGreen"
+type = "poisson"
+lib = "bp1.lua"
+scenario = "bp1_sym"
+ref_normal = [-1, 0]
+boundary_linear = true
+
+gf_checkpoint_prefix = "/export/dump/jyun/GreensFunctions/bp1_sym_hf02"
+
+[fault_probe_output]
+prefix = "faultp_"
+t_max = 9460800
+probes = [
+    { name = "fp000", x = [-2.73358e-17, -5.49243e-16] },
+    { name = "fp050", x = [0.0, -5.0] },
+    { name = "fp100", x = [0.0, -10.0] },
+    { name = "fp150", x = [0.0, -15.0] },
+    { name = "fp200", x = [0.0, -20.0] },
+    { name = "fp300", x = [0.0, -30.0] }
+]
+
+# Fault outputs
+[fault_output]
+prefix = "fault"
+rtol = 0.1
+
+# Domain probe outputs
+[domain_probe_output]
+prefix = "domainp_"
+t_max = 9460800
+probes = [
+    { name = "dp000", x = [-2.73358e-17, -5.49243e-16] },
+    { name = "dp050", x = [0.0, -5.0] },
+    { name = "dp004", x = [20.0000, 0.0] },
+    { name = "dp008", x = [40.0000, 0.0] },
+    { name = "dp012", x = [60.0000, 0.0] },
+    { name = "dp016", x = [80.0000, 0.0] },
+    { name = "dp020", x = [100.0000, 0.0] }
+]
+
+# Domain outputs
+[domain_output]
+prefix = "domain"
+rtol = 0.1
