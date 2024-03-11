@@ -1,10 +1,20 @@
+# from read_outputs import read_domain_probe_outputs
+
+# save_dir = '/export/dump/jyun/perturb_stress/reference'
+# read_domain_probe_outputs(save_dir,save_on=True)
 import argparse
-import numpy as np
+# import numpy as np
 parser = argparse.ArgumentParser()
-parser.add_argument("-spup","--spin_up", nargs=2, type=str, help=": Plot with spin-up after given amount of quantity",default=[])
+parser.add_argument("--save_on",action="store_true",help=": Save on?")
+# parser.add_argument("-spup","--spin_up", nargs=2, type=str, help=": Plot with spin-up after given amount of quantity",default=[])
 args = parser.parse_args()
 
-print(len(args.spin_up))
+print(bool(abs(1-int(args.save_on))))
+if args.save_on:
+    print('Save on being True')
+else:
+    print('Save on being False')
+# print(len(args.spin_up))
 # print(args.spin_up)
 # if len(args.spin_up) == 1:
 #     print('Field npts not defined - using default value 50')

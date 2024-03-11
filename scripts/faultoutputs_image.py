@@ -28,14 +28,15 @@ mydarkviolet = (145/255,80/255,180/255)
 # Index:     0     |      1     |       2      |        3        |         4        |          5 
 
 def fout_image(lab,outputs,dep,params,cumslip_outputs,save_dir,prefix,
-               rths,vmin,vmax,Vths,zoom_frame,plot_in_timestep=True,plot_in_sec=False,cb_off=False,publish=False,save_on=True):
+               rths,vmin,vmax,Vths,zoom_frame,horz_size=20.6,vert_size=11,
+               plot_in_timestep=True,plot_in_sec=False,cb_off=False,publish=False,save_on=True):
     processed_outputs = class_figtype(zoom_frame,outputs,cumslip_outputs,publish)[0]
     X,Y,var = get_var(lab,processed_outputs,dep,plot_in_timestep,plot_in_sec)
     if vmin is None:
         vmin = np.min(var)
     if vmax is None:
         vmax = np.max(var)
-    ax = plot_image(X,Y,var,lab,outputs,cumslip_outputs,save_dir,prefix,params,zoom_frame,rths,vmin,vmax,Vths,plot_in_timestep,plot_in_sec,cb_off,publish,save_on)
+    ax = plot_image(X,Y,var,lab,outputs,cumslip_outputs,save_dir,prefix,params,zoom_frame,rths,vmin,vmax,Vths,horz_size,vert_size,plot_in_timestep,plot_in_sec,cb_off,publish,save_on)
     return ax
 
 def get_var(lab,outputs,dep,plot_in_timestep,plot_in_sec):
@@ -310,11 +311,12 @@ def decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,p
 
     return fig_name
 
-def plot_image(X,Y,var,lab,outputs,cumslip_outputs,save_dir,prefix,params,zoom_frame,rths,vmin,vmax,Vths,plot_in_timestep,plot_in_sec,cb_off,publish,save_on):
+def plot_image(X,Y,var,lab,outputs,cumslip_outputs,save_dir,prefix,params,zoom_frame,rths,vmin,vmax,Vths,horz_size,vert_size,plot_in_timestep,plot_in_sec,cb_off,publish,save_on):
     Hs = ch.load_parameter(prefix)[1]
 
     plt.rcParams['font.size'] = '27'
-    fig,ax=plt.subplots(figsize=(20.6,11))
+    fig,ax=plt.subplots(figsize=(horz_size,vert_size))
+    # fig,ax=plt.subplots(figsize=(20.6,11))
 
     cmap_n,cb_label = gen_cmap(lab,params,vmin,vmax,Vths)
     if lab == 'sliprate':

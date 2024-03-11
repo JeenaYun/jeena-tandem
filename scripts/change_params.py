@@ -37,8 +37,8 @@ class variate:
         return prefix
     
     def load_parameter(self,prefix,print_on=True):
+        self.get_setup_dir()
         if 'lithostatic_sn' in prefix or 'depth_dep_sn' in prefix:
-            self.get_setup_dir()
             new_setup_dir = self.setup_dir + '/supermuc'
             self.change_setup_dir(new_setup_dir)
         fsigma,ff0,fab,fdc,newb,newL,dz = self.what_is_varied(prefix,print_on)
@@ -54,26 +54,7 @@ class variate:
 
     def get_model_n(self,prefix,indicator,print_on=True):
         tail = ' '
-        if 'BP1' in prefix:
-            model_n = None
-        elif indicator == 'DZ' and indicator in prefix:
-            model_n = 0
-        elif len(prefix.split('/')[-1].split(indicator)) > 1:
-            if len(prefix.split('/')[-1].split(indicator)[-1].split('_')) > 1:
-                try:
-                    model_n = int(prefix.split('/')[-1].split(indicator)[-1].split('_')[0])
-                except ValueError:
-                    if print_on: print('might not be a fractal model - returning None')
-                    model_n = None
-            else:
-                try:
-                    model_n = int(prefix.split('/')[-1].split(indicator)[-1])
-                except ValueError:
-                    if print_on: print('might not be a fractal model - returning None')
-                    model_n = None
-        else:
-            model_n = None
-
+        model_n = None
         if 'hetero_stress' in prefix and indicator == 'v' and model_n is None:
             model_n = 0
         
@@ -92,6 +73,24 @@ class variate:
                 model_n = 2
             if indicator == 'Dc':
                 model_n = 2
+        
+        if 'BP1' in prefix:
+            model_n = None
+        elif indicator == 'DZ' and indicator in prefix:
+            model_n = 0
+        elif len(prefix.split('/')[-1].split(indicator)) > 1:
+            if len(prefix.split('/')[-1].split(indicator)[-1].split('_')) > 1:
+                try:
+                    model_n = int(prefix.split('/')[-1].split(indicator)[-1].split('_')[0])
+                except ValueError:
+                    if print_on: print('might not be a fractal model - returning None')
+                    model_n = None
+            else:
+                try:
+                    model_n = int(prefix.split('/')[-1].split(indicator)[-1])
+                except ValueError:
+                    if print_on: print('might not be a fractal model - returning None')
+                    model_n = None
 
         return model_n,tail
 

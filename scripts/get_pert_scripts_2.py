@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 '''
 Automatically write scripts for stress perturbation
-Example usage: python get_pert_scripts.py perturb_stress reference 31 vert_fast 330 --streess_dep_law --write_on
 By Jeena Yun
 Last modification: 2024.01.02.
 '''
@@ -65,8 +64,8 @@ if args.streess_dep_law:
     run_branch_n += '_stress_dep'
 
 fname_lua = '/home/jyun/Tandem/%s/scenario_perturb.lua'%(args.model_n)
-fname_toml = '/home/jyun/Tandem/%s/parameters_perturb_scenario.toml'%(args.model_n)
-fname_shell = '/home/jyun/Tandem/routine_perturb.sh'
+fname_toml = '/home/jyun/Tandem/%s/parameters_perturb_scenario_2.toml'%(args.model_n)
+fname_shell = '/home/jyun/Tandem/routine_perturb_2.sh'
 
 print('====================== Summary of Input Parameters =======================')
 print('output_save_dir = %s'%(output_save_dir))

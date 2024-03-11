@@ -65,6 +65,10 @@ parser.add_argument("-u","--displacement", type=str.lower, choices=['x','t'], he
 # Whether this figure is for publishing
 parser.add_argument("-pub","--publish", action="store_true", help="Generate figure for publishing purpose (without version names)",default=False)
 
+# Whether this figure is for publishing
+parser.add_argument("-hsize","--horz_size", type=float, help="Horizontal size of the figure frame",default=None)
+parser.add_argument("-vsize","--vert_size", type=float, help="Vertical size of the figure frame",default=None)
+
 args = parser.parse_args()
 
 # --- Check dependencies
@@ -168,10 +172,12 @@ if args.image:
             vmax = None
     else:
         vmax = args.vmax
+    if not args.horz_size: args.horz_size = 20.6
+    if not args.vert_size: args.vert_size = 11
     if not 'cumslip_outputs' in locals():   # No event outputs computed
         from cumslip_compute import *
         cumslip_outputs = compute_cumslip(outputs,dep,cuttime,args.Vlb,args.Vths,dt_creep,dt_coseismic,dt_interm,args.SRvar)
-    fout_image(args.image,outputs,dep,params,cumslip_outputs,save_dir,prefix,args.rths,vmin,vmax,args.Vths,args.zoom_frame,args.plot_in_timestep,args.plot_in_sec,args.colorbar_off,args.publish)
+    fout_image(args.image,outputs,dep,params,cumslip_outputs,save_dir,prefix,args.rths,vmin,vmax,args.Vths,args.zoom_frame,args.horz_size,args.vert_size,args.plot_in_timestep,args.plot_in_sec,args.colorbar_off,args.publish)
 
 # Miscellaneous --------------------------------------------------------------------------------------------------------------------------
 if args.ev_anal:

@@ -43,18 +43,18 @@ class setups:
         loc,c,d = [],0,0
         if write_on: fid.write('probes = [\n')
         if dip == 90:
-            while d <= Hs[0]:
+            while d < Hs[0]:
                 if write_on: 
                     if abs(d - Hs[0]) < dmin*0.1:
                         fid.write('    { name = "fp%03d", x = [0.0, %1.4f] }\n'%(c,-d))
                     else:
                         fid.write('    { name = "fp%03d", x = [0.0, %1.4f] },\n'%(c,-d))
-                if d < Hs[1]+Hs[2] - dmin:
+                loc.append(-d)
+                if d + dmin <= Hs[1]+Hs[2]+dmin*0.1:
                     d += dmin
                 else:
                     d += dmax
                 c += 1
-                loc.append(-d)
         else:
             dip = np.deg2rad(dip)
             while d <= Hs[0]:

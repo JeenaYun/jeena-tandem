@@ -153,3 +153,33 @@ def analyze_events(cumslip_outputs,rths,print_on=True):
                 [],[],[],[],[],[],[],[]
     return rupture_length,av_slip,system_wide,partial_rupture,event_cluster,lead_fs,major_pr,minor_pr
 
+def analyze_SSE_events(SSE_outputs,print_on=True):
+    from scipy import integrate, interpolate
+    rupture_length = []
+    av_slip = []
+    if len(SSE_outputs[0][0]) > 0:
+        z,idep = np.array(SSE_outputs[2][2]),np.array(SSE_outputs[2][3])
+        fault_z = z[idep[0]:idep[1]]
+        fault_slip = np.array(SSE_outputs[1][2])
+
+        for ti in range(fault_slip.shape[1]):
+            fs = fault_slip[:,ti]
+            Sths = max(fs)*0.01
+            ii = np.where(fs>Sths)[0]
+            if min(ii) > 0:
+                ii = np.hstack(([min(ii)-1],ii))
+            if max(ii) < len(fs)-1:
+                ii = np.hstack((ii,[max(ii)+1]))
+            rl = max(fault_z[ii])-min(fault_z[ii])
+            f = interpolate.interp1d(fault_z,fs)
+            npts = 1000
+            newz = np.linspace(min(fault_z),max(fault_z),npts)
+            Dbar = integrate.simpson(f(newz),newz)/rl
+            rupture_length.append(rl)
+            av_slip.append(Dbar)
+
+        rupture_length = np.array(rupture_length)
+    else:
+        if print_on: print('No events')
+        rupture_length,av_slip = [],[]
+    return np.array(rupture_length),np.array(av_slip)

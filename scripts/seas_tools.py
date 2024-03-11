@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Tools for SEAS benchmark comparison
-Last modification: 2024.01.16.
+Last modification: 2024.02.08.
 by Jeena Yun
 """
 
@@ -9,7 +9,7 @@ import numpy as np
 import os
 
 class SEAS:
-    def __init__(self,modeler,BPname,color='k',hf=10,my_output_dir=None):
+    def __init__(self,modeler,BPname,color='k',hf=10,my_output_dir=None,label=None):
         self.modeler = modeler
         self.mode = ''
         self.bpNum = int(BPname.split('-')[0].lower().split('bp')[-1])
@@ -28,11 +28,18 @@ class SEAS:
                 self.my_output_dir = '%s/outputs_%s_hf%dm'%(self.save_dir,self.mode.upper(),self.hf)
             else:
                 self.my_output_dir = '%s/outputs_hf%dm'%(self.save_dir,self.hf)
+        else:
+            self.my_output_dir = '%s/outputs_%s'%(self.save_dir,my_output_dir)
+            self.comparison_dir = '%s/comparison/%s_%s'%(self.save_dir,self.modeler,my_output_dir) 
+        if label is None:
+            self.label = self.modeler
+        else:
+            self.label = label
 
     def read_onfault_at_depth(self,stloc,print_on=True,new_fname=None):
         template = self.onfault_suffix(stloc)
         fname = '%s/%s.dat'%(self.comparison_dir,template)
-        if self.modeler == 'yun' and not os.path.exists(fname):
+        if (self.modeler == 'yun' or self.modeler == 'test') and not os.path.exists(fname):
             if print_on: print('No existing data file - write it')
             self.save_onfault_BP6(stloc,save_on=True,new_fname=new_fname)
         else:
@@ -361,18 +368,25 @@ class SEAS:
             }
         return var_info
 
-    def line_plot_macro(self,ax,stloc,scenario_list,target_var):
+    def line_plot_macro(self,ax,stloc,scenario_list,target_var,root_label='yun',plot_in_yrs=False):
         for scenario in scenario_list:
+            t = scenario.t
+            if plot_in_yrs: t /= 60*60*24*365
             var_info = self.get_var_info(target_var,scenario)
-            if scenario.modeler == 'yun':
-                ax.plot(scenario.t,var_info['data'],color=scenario.col,lw=2.5,linestyle='--',zorder=3,label='%s'%(scenario.modeler))
+            if scenario.label == root_label:
+                # ax.plot(t,var_info['data'],color=scenario.col,lw=2.5,zorder=3,label='%s'%(scenario.label))
+                ax.plot(t,var_info['data'],color=scenario.col,lw=2.5,linestyle='--',zorder=3,label='%s'%(scenario.label))
             else:
-                ax.plot(scenario.t,var_info['data'],color=scenario.col,lw=2.5,label='%s'%(scenario.modeler))
+                ax.plot(t,var_info['data'],color=scenario.col,lw=2.5,label='%s'%(scenario.label))
         ylab = var_info['label']
         ax.legend(fontsize=15)
-        ax.set_xlabel('Time [s]',fontsize=17)
+        if plot_in_yrs: 
+            ax.set_xlabel('Time [yrs]',fontsize=17)
+        else:
+            ax.set_xlabel('Time [s]',fontsize=17)
         ax.set_ylabel(ylab,fontsize=17)
-        if stloc is not None: ax.set_title('File: %s (z = %1.1f km)'%(scenario.onfault_suffix(stloc),stloc/1e3),fontsize=21,fontweight='bold')
+        # if stloc is not None: ax.set_title('File: %s (z = %1.1f km)'%(scenario.onfault_suffix(stloc),stloc/1e3),fontsize=21,fontweight='bold')
+        if stloc is not None: ax.set_title('z = %1.1f km'%(stloc/1e3),fontsize=21,fontweight='bold')
         ax.grid(True,alpha=0.5)
 
     def change_save_dir(self,new_save_dir):

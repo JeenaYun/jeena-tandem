@@ -30,7 +30,7 @@ def event_times(dep,outputs,Vlb,Vths,cuttime,dt_coseismic,intv,print_on=True):
         time = time[time <= cuttime]
 
     psr = np.max(sliprate,axis=0)
-    pd = np.argmax(sliprate,axis=0)
+    ipsr = np.argmax(sliprate,axis=0)
 
     # ----- Define events by peak sliprate
     if Vlb > 0:
@@ -43,7 +43,7 @@ def event_times(dep,outputs,Vlb,Vths,cuttime,dt_coseismic,intv,print_on=True):
 
         tmp_tstart = time[events][np.hstack(([0],jumps))]
         tmp_tend = time[events][np.hstack((jumps-1,len(events)-1))]
-        tmp_evdep = pd[events][np.hstack(([0],jumps))]
+        tmp_evdep = ipsr[events][np.hstack(([0],jumps))]
 
         # ----- Remove events with too short duration
         ii = np.where(tmp_tend-tmp_tstart>=dt_coseismic)[0]
@@ -63,7 +63,7 @@ def event_times(dep,outputs,Vlb,Vths,cuttime,dt_coseismic,intv,print_on=True):
             large_diffs = np.where(abs(np.diff(np.log10(psr)))[ts-1:ts-1+width]>=diffcrit)[0]
             if psr_inc < diffcrit and len(large_diffs) > 0:
                 new_its_all[k] = large_diffs[0] + ts
-        evdep = z[pd[new_its_all]]
+        evdep = z[ipsr[new_its_all]]
         tstart = time[new_its_all]
 
         # ----- Remove events whose maximum peak slip rate is lower than certain criterion
@@ -92,7 +92,7 @@ def event_times(dep,outputs,Vlb,Vths,cuttime,dt_coseismic,intv,print_on=True):
     return tstart, tend, evdep
     
 def compute_cumslip(outputs,dep,cuttime,Vlb,Vths,dt_creep,dt_coseismic,dt_interm,intv,print_on=True):
-    if print_on: print('Cumulative slip vs. Depth plot >>> ',end='')
+    if print_on: print('Compute cumulative slip vs. depth >>> ',end='')
 
     if print_on: 
         if abs(cuttime) < 1e-3:
@@ -240,3 +240,103 @@ def compute_spinup(outputs,dep,cuttime,cumslip_outputs,spin_up,rths,print_on=Tru
         return [new_inits, spup_evslip, spup_cscreep, spup_cscoseis, spup_csinterm, spin_up_idx]
     else:
         return [new_inits, spup_evslip, spup_cscreep, spup_cscoseis, spin_up_idx]
+
+def SSE_event_times(dep,outputs,depth_range,tstart,tend,print_on=True):
+    ii = np.argsort(abs(dep))
+    time = outputs[0,:,0]
+    cumslip = outputs[ii,:,2]
+    sliprate = abs(outputs[ii,:,4])
+    z = abs(dep[ii])
+
+    if depth_range == 'shallow':
+        Vths = -9.6
+        target_depth = [0.,5.]
+        if print_on: print('Shallow SSEs (0 - 5 km)')
+    elif depth_range == 'deep':
+        Vths = -8.5
+        target_depth = [10.,20.]
+        if print_on: print('Deep SSEs (10 - 20 km)')
+
+    if len(target_depth) > 1:
+        idep = [np.argmin(abs(z - abs(target_depth[0]))),np.argmin(abs(z - abs(target_depth[1])))]
+
+    psr = np.log10(np.max(sliprate[idep[0]:idep[1],:],axis=0))
+    ipsr = np.argmax(sliprate[idep[0]:idep[1],:],axis=0)
+
+    # ----- Define events by peak sliprate
+    events = np.where(np.logical_and(psr < -6,psr > Vths))[0]
+
+    sse_tstart, sse_tend, sse_evdep = [],[],[]
+    if len(events) > 0:
+        jumps = np.where(np.diff(events)>1)[0]+1
+
+        tmp_its = events[np.hstack(([0],jumps))]
+        tmp_ite = events[np.hstack((jumps-1,len(events)-1))]
+
+        # ----- Remove events with too short duration
+        kk = np.where(tmp_ite-tmp_its>=1)[0]
+        tmp_its = tmp_its[kk]
+        tmp_ite = tmp_ite[kk]
+
+        # ----- Remove picks including coseismic events
+        mpsr = np.array([max(psr[tmp_its[k]:tmp_ite[k]]) for k in range(len(tmp_its))])
+        ii = np.where(mpsr < -6)[0]
+        tmp_its = tmp_its[ii]
+        tmp_ite = tmp_ite[ii]
+
+        # ----- Remove picks including coseismic events
+        mpsr = np.array([max(psr[tmp_its[k]:tmp_ite[k]]) for k in range(len(tmp_its))])
+        ii = np.where(mpsr < -6)[0]
+        tmp_its = tmp_its[ii]
+        tmp_ite = tmp_ite[ii]
+
+        # ----- Remove acceleration before coseismic events
+        kk = np.array([len(np.where(tstart>=ste)[0]) for ste in time[tmp_ite]]) > 0
+        nearest_end = np.log10(np.array([tstart[np.where(tstart>=ste)[0][0]]-ste for ste in time[tmp_ite[kk]]]))
+        nearest_end = np.append(nearest_end,10*np.ones(len(kk)-sum(kk)))
+        ii = np.where(nearest_end > 6)[0]
+        tmp_its = tmp_its[ii]
+        tmp_ite = tmp_ite[ii]
+
+        nearest_start = np.log10(np.array([sts - tend[np.where(tend<=sts)[0][-1]] for sts in time[tmp_its]]))
+        ii = np.where(nearest_start > 7)[0]
+        tmp_its = tmp_its[ii]
+        tmp_ite = tmp_ite[ii]
+
+        # ----- Merge peaks with unphysically close time
+        interval = np.hstack(([1e8],time[tmp_its][1:]-time[tmp_ite][:-1]))
+        its_filter = np.ones(len(tmp_its),dtype=bool)
+        ite_filter = np.ones(len(tmp_ite),dtype=bool)
+        for u,intv in enumerate(interval):
+            if intv <= 3e7:
+                its_filter[u] = False
+                ite_filter[u-1] = False
+        its = tmp_its[its_filter]
+        ite = tmp_ite[ite_filter]
+        
+        sse_tstart = time[its]
+        sse_tend = time[ite]
+        sse_evdep = z[ipsr[its]]
+    return sse_tstart,sse_tend,sse_evdep,its,ite,time,psr,cumslip,z,idep
+
+def compute_SSE_cumslip(outputs,dep,depth_range,cumslip_outputs,print_on=True):
+    if print_on: print('Compute cumulative slip vs. depth for SSEs >>> ',end='')
+
+    tstart,tend = cumslip_outputs[0][0],cumslip_outputs[0][1]
+    sse_tstart,sse_tend,sse_evdep,its,ite,time,psr,cumslip,z,idep = SSE_event_times(dep,outputs,depth_range,tstart,tend,print_on)
+    if len(its) > 0:
+        sse_evslip = np.zeros(len(its))                                   # Actual cumslip at the start of the event (at the event depth)
+        sse_fault_slip = np.zeros((len(z[idep[0]:idep[1]]),len(its)))     # Net cumslip accretion after the event along each depth
+        for iz,z_at_depth in enumerate(z[idep[0]:idep[1]]):
+            cumslip_at_z = cumslip[iz+idep[0],:]
+            for iev in range(len(its)):
+                if z[iz] == sse_evdep[iev]:
+                    sse_evslip[iev] = cumslip_at_z[its[iev]]
+                sse_fault_slip[iz,iev] = cumslip_at_z[ite[iev]]-cumslip_at_z[its[iev]]
+    else:
+        sse_evslip,sse_fault_slip = [],[],[]
+
+    timeout = [sse_tstart,sse_tend,its,ite]
+    evout   = [sse_evslip,sse_evdep,sse_fault_slip]
+    etcout  = [time,psr,z,idep]
+    return [timeout, evout, etcout]

@@ -47,7 +47,8 @@ def extract_from_lua(save_dir,save_on=True):
             sep = 'ridgecrest.'
     else:
         fname = prefix.split('/')[0] + '/' + fname + '_'+prefix.split('/')[-1]+'.lua'
-    fname = ch.get_setup_dir() + '/' + fname
+    ch.get_setup_dir()
+    fname = ch.setup_dir + '/' + fname
     print(fname)
 
     here = False
@@ -116,7 +117,6 @@ def read_fault_probe_outputs(save_dir,save_on=True):
     ti = time.time()
     for fname in np.sort(fnames):
         dat = pd.read_csv(fname,delimiter=',',skiprows=1)
-        print(dat.values.shape)
         stloc = pd.read_csv(fname,nrows=1,header=None)
         dep.append(float(stloc.values[0][-1].split(']')[0]))
         outputs.append(dat.values)
