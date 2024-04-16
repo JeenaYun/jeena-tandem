@@ -1,13 +1,13 @@
-final_time = 63072000000
-mesh_file = "ridgecrest_hf25.msh"
+final_time = 9460800000
+mesh_file = "ridgecrest_hf10.msh"
 mode = "QDGreen"
 type = "poisson"
-lib = "matfric_Fourier_main_reference.lua"
+lib = "matfric_Fourier_main_reference_bigDc.lua"
 scenario = "bp1_sym"
 ref_normal = [-1, 0]
 boundary_linear = true
 
-gf_checkpoint_prefix = "/export/dump/jyun/GreensFunctions/ridgecrest_hf25"
+gf_checkpoint_prefix = "/export/dump/jyun/GreensFunctions/ridgecrest_hf10"
 
 [fault_probe_output]
 prefix = "faultp_"

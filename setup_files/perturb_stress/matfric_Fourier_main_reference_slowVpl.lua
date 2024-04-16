@@ -23,7 +23,7 @@ BP1.h = 5.0
 BP1.H2 = 2.0
 
 -- Others
-BP1.Vp = 1e-9           -- Plate rate [m/s]
+BP1.Vp = 3.2e-11        -- Plate rate [m/s]
 BP1.rho0 = 2.670        -- Density []
 BP1.V0 = 1.0e-6         -- Reference slip rate [m/s]
 BP1.f0 = 0.6            -- Reference friction coefficient
@@ -124,7 +124,7 @@ function BP1:sn_pre(x, y)
 end
 
 function BP1:Vinit(x, y)
-    return 1.0e-9
+    return self.Vp
 end
 
 function BP1:ab(x, y)
@@ -169,4 +169,3 @@ bp1_sym = BP1:new()
 function bp1_sym:boundary(x, y, t)
     return self.Vp/2.0 * t
 end
-

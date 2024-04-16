@@ -1,10 +1,9 @@
-final_time = 0
+final_time = 1.15e+06
 mesh_file = "ridgecrest_hf02_coarse.msh"
 mode = "QDGreen"
 type = "poisson"
-lib = "matfric_Fourier_main_reference.lua"
+lib = "matfric_Fourier_main_sliplaw_reference.lua"
 scenario = "bp1_sym"
 ref_normal = [-1, 0]
 boundary_linear = true
-
 gf_checkpoint_prefix = "/export/dump/jyun/GreensFunctions/ridgecrest_hf02_coarse"

@@ -55,9 +55,13 @@ function read_fractal(fname)
 end
 
 -------------------- Define your input data
-y_sn,fractal_sn = read_fractal('/home/jyun/Tandem/perturb_stress/fractal_snpre_06')
+-- y_sn,fractal_sn = read_fractal('/home/jyun/Tandem/perturb_stress/fractal_snpre_06')
 y_ab,fractal_ab = read_fractal('/home/jyun/Tandem/perturb_stress/fractal_ab_02')
 y_dc,fractal_dc = read_fractal('/home/jyun/Tandem/perturb_stress/fractal_Dc_02')
+
+y_extract,extract_tau = read_fractal('/home/jyun/Tandem/perturb_stress/extract_shearT_121946.dat')
+y_extract,extract_V = read_fractal('/home/jyun/Tandem/perturb_stress/extract_sliprate_121946.dat')
+y_extract,extract_sn = read_fractal('/home/jyun/Tandem/perturb_stress/extract_normalT_121946.dat')
 
 -------------------- Define linear interpolation function
 function linear_interpolation(x, y, x0)
@@ -104,11 +108,12 @@ function BP1:L(x, y)
     if y > 0 then
         het_L = self.Dc
     end
-    -- file = io.open ('/home/jyun/Tandem/perturb_stress/dc_profile_reference','a')
+    -- file = io.open ('/home/jyun/Tandem/perturb_stress/dc_profile_sliplaw_lowres','a')
     -- io.output(file)
-    -- io.write(y,'\t',het_L,'\n')
+    -- io.write(y,'\t',het_L*5,'\n')
     -- io.close(file)
-    return het_L
+    return het_L*5
+    -- return het_L
 end
 
 function BP1:lam(x, y)
@@ -116,15 +121,33 @@ function BP1:lam(x, y)
 end
 
 function BP1:sn_pre(x, y)
-    local het_sigma = linear_interpolation(y_sn, fractal_sn, y)
-    if het_sigma == nil then
-        het_sigma = self.sigma1
+    -- local het_sigma = linear_interpolation(y_sn, fractal_sn, y)
+    -- if het_sigma == nil then
+    --     het_sigma = self.sigma1
+    -- end
+    -- return het_sigma
+    local extract_sn_pre = linear_interpolation(y_extract,extract_sn, y)
+    if extract_sn_pre == nil then
+        extract_sn_pre = self.sigma1
     end
-    return het_sigma
+    -- file = io.open ('/home/jyun/Tandem/perturb_stress/sn_pre_profile','a')
+    -- io.output(file)
+    -- io.write(y,'\t',extract_sn_pre,'\n')
+    -- io.close(file)
+    return extract_sn_pre
 end
 
 function BP1:Vinit(x, y)
-    return 1.0e-9
+    -- return 1.0e-9
+    local extract_Vinit = linear_interpolation(y_extract,extract_V, y)
+    if extract_Vinit == nil then
+        extract_Vinit = extract_V[#extract_V]
+    end
+    -- file = io.open ('/home/jyun/Tandem/perturb_stress/Vinit_profile','a')
+    -- io.output(file)
+    -- io.write(y,'\t',extract_Vinit,'\n')
+    -- io.close(file)
+    return extract_Vinit
 end
 
 function BP1:ab(x, y)
@@ -147,20 +170,29 @@ function BP1:a(x, y)
 end
 
 function BP1:tau_pre(x, y)
-    local z = -y
-    local _tau1 = self.tau2 + (self.tau2 - self.tau1) * (z - self.H2) / self.H2
-    local _tau2 = self.tau2 + (self.tau3 - self.tau2) * (z - self.H) / self.h
-    local _tau = self.tau3
-    local _sn = self:sn_pre(x,y)
+    -- local z = -y
+    -- local _tau1 = self.tau2 + (self.tau2 - self.tau1) * (z - self.H2) / self.H2
+    -- local _tau2 = self.tau2 + (self.tau3 - self.tau2) * (z - self.H) / self.h
+    -- local _tau = self.tau3
+    -- local _sn = self:sn_pre(x,y)
 
-    if z < self.H2 then
-        _tau = _tau1
-    elseif z < self.H then
-        _tau = self.tau2
-    elseif z < self.H + self.h then
-        _tau = _tau2
+    -- if z < self.H2 then
+    --     _tau = _tau1
+    -- elseif z < self.H then
+    --     _tau = self.tau2
+    -- elseif z < self.H + self.h then
+    --     _tau = _tau2
+    -- end
+    -- return _tau
+    local extract_tau_pre = linear_interpolation(y_extract,extract_tau, y)
+    if extract_tau_pre == nil then
+        extract_tau_pre = extract_tau[#extract_tau]
     end
-    return _tau
+    -- file = io.open ('/home/jyun/Tandem/perturb_stress/tau_pre_profile','a')
+    -- io.output(file)
+    -- io.write(y,'\t',extract_tau_pre,'\n')
+    -- io.close(file)
+    return extract_tau_pre
 end
 
 bp1 = BP1:new()
@@ -169,4 +201,3 @@ bp1_sym = BP1:new()
 function bp1_sym:boundary(x, y, t)
     return self.Vp/2.0 * t
 end
-

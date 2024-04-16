@@ -104,11 +104,11 @@ function BP1:L(x, y)
     if y > 0 then
         het_L = self.Dc
     end
-    -- file = io.open ('/home/jyun/Tandem/perturb_stress/dc_profile_reference','a')
+    -- file = io.open ('/home/jyun/Tandem/perturb_stress/dc_profile_lowres_aginglaw_reference_1','a')
     -- io.output(file)
-    -- io.write(y,'\t',het_L,'\n')
+    -- io.write(y,'\t',het_L*5,'\n')
     -- io.close(file)
-    return het_L
+    return het_L*5
 end
 
 function BP1:lam(x, y)

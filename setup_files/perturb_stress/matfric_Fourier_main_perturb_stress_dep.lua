@@ -28,11 +28,13 @@ ridgecrest.h = 5.0
 ridgecrest.H2 = 2.0
 
 -- Others
+ridgecrest.Vp = 1e-9           -- Plate rate [m/s]
 ridgecrest.rho0 = 2.670        -- Density []
 ridgecrest.V0 = 1.0e-6         -- Reference slip rate [m/s]
 ridgecrest.f0 = 0.6            -- Reference friction coefficient
 ridgecrest.Dc = 0.002          -- Basevalue for Dc
 ridgecrest.nu = 0.25           -- Poisson ratio
+ridgecrest.alpha = 0.3         -- Coefficient for the stress-dependency
 
 
 -------------------- Define useful functions 
@@ -138,13 +140,15 @@ function pert_at_y(delDat,dep,init_time,t,y,dt)
     local y0 = 0.0
     if init_time > 0 then -- Safety tool
         local ti = math.floor((t-init_time)/dt+0.5) + 1
-        if ti <= #delDat then
-            y0 = linear_interpolation(dep, delDat[ti],y)
-        else
-            if ti <= #delDat+10 then
-                print('working')
+        if ti > 0 then -- Safety tool 2
+            if ti <= #delDat then
+                y0 = linear_interpolation(dep, delDat[ti],y)
+            else
+                if ti <= #delDat+10 then
+                    print('working')
+                end
+                y0 = linear_interpolation(dep, delDat[#delDat],y)
             end
-            y0 = linear_interpolation(dep, delDat[#delDat],y)
         end
     end
     return y0
@@ -172,8 +176,6 @@ function ridgecrest.new(params)
     self.fsn = params.fsn
     self.fab = params.fab
     self.fdc = params.fdc
-    self.lowres = params.lowres
-    self.Vp = params.Vp
 
     -- Define filenames
     local fname_fractal_sn = fractal_dir..'/fractal_snpre_'..string.format("%02d",self.fsn)
@@ -221,7 +223,7 @@ function ridgecrest:lam(x, y)
 end
 
 function ridgecrest:Vinit(x, y)
-    return self.Vp
+    return 1.0e-9
 end
 
 function ridgecrest:L(x, y)
@@ -229,17 +231,7 @@ function ridgecrest:L(x, y)
     if y > 0 then
         het_L = self.Dc
     end
-    -- file = io.open ('/home/jyun/Tandem/perturb_stress/dc_profile_perturb_diffwavelength','a')
-    -- io.output(file)
-    -- io.write(y,'\t',het_L,'\n')
-    -- io.close(file)
-    if math.abs(self.lowres-1) > 1e-1 then
-        print('low resolution model')
-        return_L = het_L * self.lowres
-    else
-        return_L = het_L
-    end
-    return return_L
+    return het_L
 end
 
 function ridgecrest:sn_pre(x, y)
@@ -276,34 +268,14 @@ function ridgecrest:tau_pre(x, y)
     elseif z < self.H + self.h then
         _tau = _tau2
     end
-    -- if self.after then
-    --     _tau = linear_interpolation(self.y_fin,self.fin_tau,y)
-    -- else
-    --     if z < self.H2 then
-    --         _tau = _tau1
-    --     elseif z < self.H then
-    --         _tau = self.tau2
-    --     elseif z < self.H + self.h then
-    --         _tau = _tau2
-    --     end
-    -- end
     return _tau
 end
 
 function ridgecrest:delta_tau(x, y, t)
     local _del_tau = 0.0
     if self.init_time > 0 and t >= self.init_time then
-        -- if t <= self.init_time + 0.02 then
-        --     print('tau working')
-        -- end
         _del_tau = -pert_at_y(self.delTs,self.depinfo,self.init_time,t,y,self.dt)
     end
-    -- if math.abs(math.abs(y)-10.32) < 2e-3 then
-    --     local _tau = self:tau_pre(x,y)
-    --     local _sn = self:sn_pre(x,y)
-    --     local _del_sn = self:delta_sn(x,y,t)
-    --     print(t,y,_tau,_del_tau,_sn,_del_sn)
-    -- end
     return _del_tau
 end
 
@@ -319,11 +291,24 @@ function ridgecrest:a(x, y)
     local z = -y
     local _ab = self:ab(x,y)
     local _a = _ab + self.b
-    -- file = io.open ('/home/jyun/Tandem/perturb_stress/ab_profile_perturb_diffwavelength','a')
-    -- io.output(file)
-    -- io.write(y,'\t',_a,'\t',self.b,'\n')
-    -- io.close(file)
     return _a
+end
+
+function ridgecrest:source(x, y, t)
+    local add_term = 0.0
+    if t - self.init_time <= 15 then
+        local sn_t = -self:delta_sn(x, y, t)
+        local sn = self:sn_pre(x, y) + sn_t
+        local sn_t_1 = 0.0
+        local dsn = 0.0
+        if self.init_time > 0 and t > self.init_time then
+            sn_t_1 = pert_at_y(self.delPn,self.depinfo,self.init_time,t-self.dt,y,self.dt)
+            dsn = sn_t - (-sn_t_1)
+        end
+        local sn_dot = dsn/self.dt
+        add_term = -self.alpha * sn_dot / sn
+    end
+    return add_term
 end
 
 return ridgecrest

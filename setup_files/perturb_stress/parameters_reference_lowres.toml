@@ -1,8 +1,8 @@
-final_time = 63072000000
+final_time = 9460800000
 mesh_file = "ridgecrest_hf25.msh"
 mode = "QDGreen"
 type = "poisson"
-lib = "matfric_Fourier_main_reference.lua"
+lib = "matfric_Fourier_main_lowres_spinup_reference.lua"
 scenario = "bp1_sym"
 ref_normal = [-1, 0]
 boundary_linear = true

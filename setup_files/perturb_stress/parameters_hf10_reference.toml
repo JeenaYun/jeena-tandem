@@ -1,4 +1,4 @@
-final_time = 9460800000
+final_time = 72532800000
 mesh_file = "ridgecrest_hf10.msh"
 mode = "QDGreen"
 type = "poisson"
@@ -8,10 +8,6 @@ ref_normal = [-1, 0]
 boundary_linear = true
 
 gf_checkpoint_prefix = "/export/dump/jyun/GreensFunctions/ridgecrest_hf10"
-
-[fault_output]
-prefix = "fault_output/fault"
-t_max = 9460800
 
 [fault_probe_output]
 prefix = "faultp_"

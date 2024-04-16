@@ -100,15 +100,16 @@ function BP1:eta(x, y)
 end
 
 function BP1:L(x, y)
+    local mult = 4
     local het_L = linear_interpolation(y_dc, fractal_dc, y)
     if y > 0 then
         het_L = self.Dc
     end
-    -- file = io.open ('/home/jyun/Tandem/perturb_stress/dc_profile_reference','a')
-    -- io.output(file)
-    -- io.write(y,'\t',het_L,'\n')
-    -- io.close(file)
-    return het_L
+    file = io.open ('/home/jyun/Tandem/perturb_stress/BigDc_dc_profile_reference','a')
+    io.output(file)
+    io.write(y,'\t',het_L*mult,'\n')
+    io.close(file)
+    return het_L*mult
 end
 
 function BP1:lam(x, y)
@@ -169,4 +170,3 @@ bp1_sym = BP1:new()
 function bp1_sym:boundary(x, y, t)
     return self.Vp/2.0 * t
 end
-

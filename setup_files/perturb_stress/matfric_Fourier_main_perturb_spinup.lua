@@ -176,12 +176,14 @@ function ridgecrest.new(params)
     self.Vp = params.Vp
 
     -- Define filenames
-    local fname_fractal_sn = fractal_dir..'/fractal_snpre_'..string.format("%02d",self.fsn)
+    -- local fname_fractal_sn = fractal_dir..'/fractal_snpre_'..string.format("%02d",self.fsn)
     local fname_fractal_ab = fractal_dir..'/fractal_ab_'..string.format("%02d",self.fab)
     local fname_fractal_dc = fractal_dir..'/fractal_Dc_'..string.format("%02d",self.fdc)
-    -- local fname_fractal_sn = fractal_dir..'/fractal_snpre_06'
-    -- local fname_fractal_ab = fractal_dir..'/fractal_ab_02'
-    -- local fname_fractal_dc = fractal_dir..'/fractal_Dc_02'
+
+    local fname_init_tau = fractal_dir..'/extract_shearT_121946.dat'
+    local fname_init_V = fractal_dir..'/extract_sliprate_121946.dat'
+    local fname_init_sn = fractal_dir..'/extract_normalT_121946.dat'
+
     local fname_Pn = stress_dir..'/ssaf_'..self.model_n..'_Pn_pert_mu'..string.format("%02d",self.fcoeff*10)..'_'..tostring(self.strike)..'.dat'
     local fname_Ts = stress_dir..'/ssaf_'..self.model_n..'_Ts_pert_mu'..string.format("%02d",self.fcoeff*10)..'_'..tostring(self.strike)..'.dat'
     local fname_dep = stress_dir..'/ssaf_'..self.model_n..'_dep_stress_pert_mu'..string.format("%02d",self.fcoeff*10)..'_'..tostring(self.strike)..'.dat'
@@ -191,9 +193,13 @@ function ridgecrest.new(params)
     self.depinfo = readtxt_1D(fname_dep,1)
 
     -- Define your input data
-    self.y_sn,self.fractal_sn = readtxt_1D(fname_fractal_sn,2)
+    -- self.y_sn,self.fractal_sn = readtxt_1D(fname_fractal_sn,2)
     self.y_ab,self.fractal_ab = readtxt_1D(fname_fractal_ab,2)
     self.y_dc,self.fractal_dc = readtxt_1D(fname_fractal_dc,2)
+
+    self.y_extract,self.extract_tau = readtxt_1D(fname_init_tau,2)
+    self.y_extract,self.extract_V = readtxt_1D(fname_init_V,2)
+    self.y_extract,self.extract_sn = readtxt_1D(fname_init_sn,2)
 
     return self
 end
@@ -221,17 +227,25 @@ function ridgecrest:lam(x, y)
 end
 
 function ridgecrest:Vinit(x, y)
-    return self.Vp
+    local extract_Vinit = linear_interpolation(self.y_extract,self.extract_V, y)
+    if extract_Vinit == nil then
+        extract_Vinit = self.extract_V[#self.extract_V]
+    end
+    -- file = io.open ('/home/jyun/Tandem/perturb_stress/Vinit_profile','a')
+    -- io.output(file)
+    -- io.write(y,'\t',extract_Vinit,'\n')
+    -- io.close(file)
+    return extract_Vinit
 end
 
 function ridgecrest:L(x, y)
-    local het_L = linear_interpolation(self.y_dc,self.fractal_dc, y)
+    local het_L = linear_interpolation(self.y_dc, self.fractal_dc, y)
     if y > 0 then
         het_L = self.Dc
     end
-    -- file = io.open ('/home/jyun/Tandem/perturb_stress/dc_profile_perturb_diffwavelength','a')
+    -- file = io.open ('/home/jyun/Tandem/perturb_stress/dc_profile_sliplaw_lowres','a')
     -- io.output(file)
-    -- io.write(y,'\t',het_L,'\n')
+    -- io.write(y,'\t',het_L*5,'\n')
     -- io.close(file)
     if math.abs(self.lowres-1) > 1e-1 then
         print('low resolution model')
@@ -243,16 +257,15 @@ function ridgecrest:L(x, y)
 end
 
 function ridgecrest:sn_pre(x, y)
-    local het_sigma = self.sigma2
-    if self.after then
-        het_sigma = linear_interpolation(self.y_fin,self.fin_sn,y)
-    else
-        het_sigma = linear_interpolation(self.y_sn,self.fractal_sn, y)
+    local extract_sn_pre = linear_interpolation(self.y_extract,self.extract_sn, y)
+    if extract_sn_pre == nil then
+        extract_sn_pre = self.sigma1
     end
-    if het_sigma == nil then
-        het_sigma = self.sigma1
-    end
-    return het_sigma
+    -- file = io.open ('/home/jyun/Tandem/perturb_stress/sn_pre_profile','a')
+    -- io.output(file)
+    -- io.write(y,'\t',extract_sn_pre,'\n')
+    -- io.close(file)
+    return extract_sn_pre
 end
 
 function ridgecrest:delta_sn(x, y, t)
@@ -264,46 +277,22 @@ function ridgecrest:delta_sn(x, y, t)
 end
 
 function ridgecrest:tau_pre(x, y)
-    local z = -y
-    local _tau1 = self.tau2 + (self.tau2 - self.tau1) * (z - self.H2) / self.H2
-    local _tau2 = self.tau2 + (self.tau3 - self.tau2) * (z - self.H) / self.h
-    local _tau = self.tau3
-
-    if z < self.H2 then
-        _tau = _tau1
-    elseif z < self.H then
-        _tau = self.tau2
-    elseif z < self.H + self.h then
-        _tau = _tau2
+    local extract_tau_pre = linear_interpolation(self.y_extract,self.extract_tau, y)
+    if extract_tau_pre == nil then
+        extract_tau_pre = self.extract_tau[#self.extract_tau]
     end
-    -- if self.after then
-    --     _tau = linear_interpolation(self.y_fin,self.fin_tau,y)
-    -- else
-    --     if z < self.H2 then
-    --         _tau = _tau1
-    --     elseif z < self.H then
-    --         _tau = self.tau2
-    --     elseif z < self.H + self.h then
-    --         _tau = _tau2
-    --     end
-    -- end
-    return _tau
+    -- file = io.open ('/home/jyun/Tandem/perturb_stress/tau_pre_profile','a')
+    -- io.output(file)
+    -- io.write(y,'\t',extract_tau_pre,'\n')
+    -- io.close(file)
+    return extract_tau_pre
 end
 
 function ridgecrest:delta_tau(x, y, t)
     local _del_tau = 0.0
     if self.init_time > 0 and t >= self.init_time then
-        -- if t <= self.init_time + 0.02 then
-        --     print('tau working')
-        -- end
         _del_tau = -pert_at_y(self.delTs,self.depinfo,self.init_time,t,y,self.dt)
     end
-    -- if math.abs(math.abs(y)-10.32) < 2e-3 then
-    --     local _tau = self:tau_pre(x,y)
-    --     local _sn = self:sn_pre(x,y)
-    --     local _del_sn = self:delta_sn(x,y,t)
-    --     print(t,y,_tau,_del_tau,_sn,_del_sn)
-    -- end
     return _del_tau
 end
 

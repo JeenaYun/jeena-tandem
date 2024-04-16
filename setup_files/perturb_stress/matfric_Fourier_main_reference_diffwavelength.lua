@@ -25,8 +25,8 @@ BP1.H2 = 2.0
 -- Others
 BP1.Vp = 1e-9           -- Plate rate [m/s]
 BP1.rho0 = 2.670        -- Density []
-BP1.V0 = 1.0e-6         -- Reference slip rate [m/s]
-BP1.f0 = 0.6            -- Reference friction coefficient
+BP1.V0 = 1.0e-6         -- reference slip rate [m/s]
+BP1.f0 = 0.6            -- reference friction coefficient
 BP1.Dc = 0.002          -- Basevalue for Dc
 BP1.nu = 0.25           -- Poisson ratio
 
@@ -55,9 +55,9 @@ function read_fractal(fname)
 end
 
 -------------------- Define your input data
-y_sn,fractal_sn = read_fractal('/home/jyun/Tandem/perturb_stress/fractal_snpre_06')
-y_ab,fractal_ab = read_fractal('/home/jyun/Tandem/perturb_stress/fractal_ab_02')
-y_dc,fractal_dc = read_fractal('/home/jyun/Tandem/perturb_stress/fractal_Dc_02')
+y_sn,fractal_sn = read_fractal('/home/jyun/Tandem/perturb_stress/fractal_snpre_08')
+y_ab,fractal_ab = read_fractal('/home/jyun/Tandem/perturb_stress/fractal_ab_03')
+y_dc,fractal_dc = read_fractal('/home/jyun/Tandem/perturb_stress/fractal_Dc_10')
 
 -------------------- Define linear interpolation function
 function linear_interpolation(x, y, x0)
@@ -104,10 +104,10 @@ function BP1:L(x, y)
     if y > 0 then
         het_L = self.Dc
     end
-    -- file = io.open ('/home/jyun/Tandem/perturb_stress/dc_profile_reference','a')
-    -- io.output(file)
-    -- io.write(y,'\t',het_L,'\n')
-    -- io.close(file)
+    file = io.open ('/home/jyun/Tandem/perturb_stress/dc_profile_diffwavelength','a')
+    io.output(file)
+    io.write(y,'\t',het_L,'\n')
+    io.close(file)
     return het_L
 end
 
@@ -139,10 +139,10 @@ function BP1:a(x, y)
     local z = -y
     local _ab = self:ab(x,y)
     local _a = _ab + self.b
-    -- file = io.open ('/home/jyun/Tandem/perturb_stress/ab_profile_reference','a')
-    -- io.output(file)
-    -- io.write(y,'\t',_a,'\t',self.b,'\n')
-    -- io.close(file)
+    file = io.open ('/home/jyun/Tandem/perturb_stress/ab_profile_diffwavelength','a')
+    io.output(file)
+    io.write(y,'\t',_a,'\t',self.b,'\n')
+    io.close(file)
     return _a
 end
 
