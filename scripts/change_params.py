@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Tools for making varitions from the base model
-Last modification: 2024.01.18.
+Last modification: 2024.03.28.
 by Jeena Yun
 """
 import numpy as np
@@ -55,42 +55,38 @@ class variate:
     def get_model_n(self,prefix,indicator,print_on=True):
         tail = ' '
         model_n = None
-        if 'hetero_stress' in prefix and indicator == 'v' and model_n is None:
+        if indicator == 'DZ' and indicator in prefix:
             model_n = 0
-        
-        if 'perturb_stress' in prefix:
-            if indicator == 'v':
-                model_n = 6
-            if indicator == 'ab':
-                model_n = 2
-            if indicator == 'Dc':
-                model_n = 2
-        
-        if 'depth_dep_sn' in prefix:
-            if indicator == 'v':
-                model_n,tail = 6, ' depth-dependent '
-            if indicator == 'ab':
-                model_n = 2
-            if indicator == 'Dc':
-                model_n = 2
-        
-        if 'BP1' in prefix:
-            model_n = None
-        elif indicator == 'DZ' and indicator in prefix:
-            model_n = 0
-        elif len(prefix.split('/')[-1].split(indicator)) > 1:
-            if len(prefix.split('/')[-1].split(indicator)[-1].split('_')) > 1:
-                try:
-                    model_n = int(prefix.split('/')[-1].split(indicator)[-1].split('_')[0])
-                except ValueError:
-                    if print_on: print('might not be a fractal model - returning None')
-                    model_n = None
-            else:
-                try:
-                    model_n = int(prefix.split('/')[-1].split(indicator)[-1])
-                except ValueError:
-                    if print_on: print('might not be a fractal model - returning None')
-                    model_n = None
+        else:
+            if len(prefix.split('/')[-1].split(indicator)) > 1 and 'diffwavelength' not in prefix:
+                if len(prefix.split('/')[-1].split(indicator)[-1].split('_')) > 1:
+                    try:
+                        model_n = int(prefix.split('/')[-1].split(indicator)[-1].split('_')[0])
+                    except ValueError:
+                        if print_on: print('might not be a fractal model - returning None')
+                else:
+                    try:
+                        model_n = int(prefix.split('/')[-1].split(indicator)[-1])
+                    except ValueError:
+                        if print_on: print('might not be a fractal model - returning None')
+            if 'hetero_stress' in prefix and indicator == 'v' and model_n is None:
+                model_n = 0
+            if 'perturb_stress' in prefix:
+                if 'diffwavelength' in prefix:
+                    if indicator == 'v': model_n = 8
+                    if indicator == 'ab': model_n = 3
+                    if indicator == 'Dc': model_n = 10
+                else:
+                    if indicator == 'v': model_n = 6
+                    if indicator == 'ab': model_n = 2
+                    if indicator == 'Dc': model_n = 2
+            if 'depth_dep_sn' in prefix:
+                if indicator == 'v':
+                    model_n,tail = 6, ' depth-dependent '
+                if indicator == 'ab':
+                    model_n = 2
+                if indicator == 'Dc':
+                    model_n = 2
 
         return model_n,tail
 
@@ -198,7 +194,11 @@ class variate:
         if fdc is not None:
             fname = '%s/Thakur20_various_fractal_profiles/fractal_Dc_%02d'%(self.setup_dir,fdc)
             het_dc = self.read_fractal_file(fname,print_on)
-            L = het_dc
+            if 'lowres_spinup_sliplaw' in prefix:
+                print('Low resolution slip law model - use Dc*5')
+                L = [het_dc[0]*5,het_dc[1]]
+            else:
+                L = het_dc
         else:
             L = _L
 

@@ -2,7 +2,7 @@
 '''
 Functions related to reading tandem outputs: fault/fault_probe/domain_probe
 By Jeena Yun
-Last modification: 2024.01.09.
+Last modification: 2024.03.28.
 '''
 import numpy as np
 from glob import glob
@@ -40,7 +40,9 @@ def extract_from_lua(save_dir,save_on=True):
         else:
             fname = prefix.split('/')[0] + '/' + 'bp1.lua'
     elif 'perturb_stress' in prefix:
-        if 'reference' in prefix:
+        if 'slowVpl' in prefix:
+            fname = prefix.split('/')[0] + '/' + fname + '_reference_slowVpl.lua'
+        elif 'reference' in prefix:
             fname = prefix.split('/')[0] + '/' + fname + '_reference.lua'
         else:
             fname = prefix.split('/')[0] + '/' + fname + '_perturb.lua'
@@ -116,6 +118,7 @@ def read_fault_probe_outputs(save_dir,save_on=True):
     print('Start computing output... ',end='')
     ti = time.time()
     for fname in np.sort(fnames):
+        # dat = pd.read_csv(fname,delimiter=',',skiprows=1,nrows=255398) # only for hf10_reference_5
         dat = pd.read_csv(fname,delimiter=',',skiprows=1)
         stloc = pd.read_csv(fname,nrows=1,header=None)
         dep.append(float(stloc.values[0][-1].split(']')[0]))
@@ -251,6 +254,19 @@ def load_short_fault_probe_outputs(save_dir,indx,print_on=True):
     params = np.load('%s/const_params.npy'%(save_dir),allow_pickle=True)
     return outputs,dep,params
 
+def load_cumslip_outputs(save_dir,image='sliprate',Vths=None,SRvar=None,rths=None,dt_creep=None,dt_coseismic=None,print_on=True):
+    _,_,tmp_Vths,tmp_SRvar,_,_,_,tmp_rths,tmp_dt_creep,tmp_dt_coseismic = sc.base_event_criteria(save_dir,image)
+    if Vths is None: Vths = tmp_Vths
+    if SRvar is None: SRvar = tmp_SRvar
+    if rths is None: rths = tmp_rths
+    if dt_creep is None: dt_creep = tmp_dt_creep
+    if dt_coseismic is None: dt_coseismic = tmp_dt_coseismic
+    if print_on: print('Load saved data: %s/cumslip_outputs_Vths_%1.0e_srvar_%03d_rths_%d_tcreep_%d_tseis_%02d.npy'%(save_dir,Vths,SRvar*100,rths,dt_creep/ch.yr2sec,dt_coseismic*10))
+    cumslip_outputs = np.load('%s/cumslip_outputs_Vths_%1.0e_srvar_%03d_rths_%d_tcreep_%d_tseis_%02d.npy'%(save_dir,Vths,SRvar*100,rths,dt_creep/ch.yr2sec,dt_coseismic*10),allow_pickle=True)
+    if print_on: print('Load saved data: %s/spin_up_idx_Vths_%1.0e_srvar_%03d_rths_%d_tcreep_%d_tseis_%02d.npy'%(save_dir,Vths,SRvar*100,rths,dt_creep/ch.yr2sec,dt_coseismic*10))
+    spin_up_idx = np.load('%s/spin_up_idx_Vths_%1.0e_srvar_%03d_rths_%d_tcreep_%d_tseis_%02d.npy'%(save_dir,Vths,SRvar*100,rths,dt_creep/ch.yr2sec,dt_coseismic*10))
+    return cumslip_outputs,spin_up_idx
+    
 def read_pvd(fname):
     if not os.path.exists(fname):
         raise NameError('No such file found - check the input')
@@ -263,3 +279,24 @@ def read_pvd(fname):
     fid.close()
     time = np.array(time)
     return time
+
+
+class OUTPUTS:
+    def __init__(self,outputs,dep,target_var):
+        idx = {'time': 0, 'state': 1, 'slip': 2, 'shearT': 3, 'sliprate': 4, 'normalT': 5}
+        label = {'time': 'Time [s]', \
+            'state': r'State Variable $\psi$', \
+            'slip': 'Slip [m]', \
+            'shearT': 'Shear Traction [MPa]', \
+            'sliprate': 'Slip Rate [m/s]', \
+            'normalT': 'Normal Stress [MPa]'} 
+        ii = np.argsort(abs(dep))
+        if target_var == 'shearT' or target_var == 'sliprate':
+            var = outputs[ii,1:,idx[target_var]]
+        elif target_var == 'time':
+            var = outputs[0,:,idx[target_var]]
+        else:
+            var = outputs[ii,:,idx[target_var]]
+        self.data = var
+        self.label = label[target_var]
+        

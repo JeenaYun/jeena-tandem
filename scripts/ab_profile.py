@@ -44,14 +44,15 @@ def read_output(fname):
 # ------------------ Initial profile check
 def plot_ab_vs_depth(save_dir,prefix,save_on=True):
     y,Hs,a0,b0,_a_b = ch.load_parameter(prefix)[0:5]
+    ch.get_setup_dir()
     if len(_a_b) == 2:
         y_in = _a_b[1]
     else:
         y_in = y
     if len(prefix.split('/')) > 1:
-        fname = '%s/%s/ab_profile_%s'%(ch.get_setup_dir(),prefix.split('/')[0],prefix.split('/')[-1])
+        fname = '%s/%s/ab_profile_%s'%(ch.setup_dir,prefix.split('/')[0],prefix.split('/')[-1])
     else:
-        fname = '%s/%s/ab_profile'%(ch.get_setup_dir(),prefix)
+        fname = '%s/%s/ab_profile'%(ch.setup_dir,prefix)
     y_ret,a,b = read_output(fname)
     
     plt.rcParams['font.size'] = '15'
@@ -81,14 +82,15 @@ def plot_ab_vs_depth(save_dir,prefix,save_on=True):
 # ------------------ With cumslip plot
 def ab_with_cumslip(ax,prefix,fs_label=30,fs_legend=15,ytick_on=False):
     y,Hs,a0,b0,_a_b = ch.load_parameter(prefix)[0:5]
+    ch.get_setup_dir()
     if len(_a_b) == 2:
         y_in = _a_b[1]
     else:
         y_in = y
     if len(prefix.split('/')) > 1:
-        fname = '%s/%s/ab_profile_%s'%(ch.get_setup_dir(),prefix.split('/')[0],prefix.split('/')[-1])
+        fname = '%s/%s/ab_profile_%s'%(ch.setup_dir,prefix.split('/')[0],prefix.split('/')[-1])
     else:
-        fname = '%s/%s/ab_profile'%(ch.get_setup_dir(),prefix)
+        fname = '%s/%s/ab_profile'%(ch.setup_dir,prefix)
     y_ret,a,b = read_output(fname)
     asp = -_a_b[1][np.logical_and(_a_b[0]>0,np.logical_and(abs(_a_b[1])>Hs[3],abs(_a_b[1])<Hs[1]))]
 

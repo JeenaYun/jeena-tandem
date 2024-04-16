@@ -3,8 +3,9 @@
 Automatically write scripts for stress perturbation
 Example usage: python get_pert_scripts.py perturb_stress reference 31 vert_fast 330 --streess_dep_law --write_on
 By Jeena Yun
-Last modification: 2024.01.02.
+Last modification: 2024.04.08.
 '''
+
 import numpy as np
 import argparse
 import os
@@ -25,9 +26,10 @@ parser.add_argument("--dt",type=float,help=": If given, time interval of the Sei
 parser.add_argument("--n_node",type=int,help=": Number of nodes for tandem simulation",default=40)
 parser.add_argument("--time_diff_in_sec",type=float,help=": If given, time difference between the perturbation point and the mainshock",default=58320)
 parser.add_argument("--ckp_freq_step",type=int,help=": If given, step interval for checkpointing",default=50)
-parser.add_argument("--ckp_freq_ptime",type=int,help=": If given, physical time interval for checkpointing",default=1000000000)
-parser.add_argument("--ckp_freq_cputime",type=int,help=": If given, CPU time interval for checkpointing",default=60)
+parser.add_argument("--ckp_freq_ptime",type=float,help=": If given, physical time interval for checkpointing",default=10000000000)
+parser.add_argument("--ckp_freq_cputime",type=float,help=": If given, CPU time interval for checkpointing",default=60)
 parser.add_argument("--dstep",type=int,help=": If given, number of steps to run for the after perturbation model",default=50000)
+parser.add_argument("--add_fintime",type=int,help=": If given, additional hours after the unperturbed event start time",default=4)
 parser.add_argument("--multiply",type=int,help=": If given, the integer is multiplied to the given perturbation model",default=1)
 parser.add_argument("--no_pert_period",action="store_true",help=": If given, do not write perturbation period",default=False)
 parser.add_argument("--no_after_pert_period",action="store_true",help=": If given, do not write after perturbation period",default=False)
@@ -51,16 +53,26 @@ if args.multiply != 1:
 else:
     seissol_model_n = args.seissol_model_n
 
+# -------- Adjust inputs 
 # Set path and file names
 output_save_dir = '/export/dump/jyun/%s/%s'%(args.model_n,args.output_branch_n)
-if args.time_diff_in_sec == 58320:
-    matched_save_dir = '/export/dump/jyun/%s/match%d'%(args.model_n,args.target_sys_evID)
-    matched_ckp = 'match%d/outputs/checkpoint'%(args.target_sys_evID)
-    run_branch_n = 'pert%d_%s%d'%(args.target_sys_evID,sc.model_code(seissol_model_n),args.strike)
-else:
-    matched_save_dir = '/export/dump/jyun/%s/match%d_%dh'%(args.model_n,args.target_sys_evID,args.time_diff_in_sec/3600)
-    matched_ckp = 'match%d_%dh/outputs/checkpoint'%(args.target_sys_evID,args.time_diff_in_sec/3600)
-    run_branch_n = 'pert%d_%s%d_%dh'%(args.target_sys_evID,sc.model_code(seissol_model_n),args.strike,args.time_diff_in_sec/3600)
+decor = ''
+if args.time_diff_in_sec != 58320:
+    decor += '_%dh'%(args.time_diff_in_sec/3600)
+if args.output_branch_n != 'reference':
+    decor += '_%s'%(args.output_branch_n)
+
+matched_save_dir = '/export/dump/jyun/%s/match%d%s'%(args.model_n,args.target_sys_evID,decor)
+matched_ckp = 'match%d%s/outputs/checkpoint'%(args.target_sys_evID,decor)
+run_branch_n = 'pert%d_%s%d%s'%(args.target_sys_evID,sc.model_code(seissol_model_n),args.strike,decor)
+# if args.time_diff_in_sec == 58320:
+#     matched_save_dir = '/export/dump/jyun/%s/match%d'%(args.model_n,args.target_sys_evID)
+#     matched_ckp = 'match%d/outputs/checkpoint'%(args.target_sys_evID)
+#     run_branch_n = 'pert%d_%s%d'%(args.target_sys_evID,sc.model_code(seissol_model_n),args.strike)
+# else:
+#     matched_save_dir = '/export/dump/jyun/%s/match%d_%dh'%(args.model_n,args.target_sys_evID,args.time_diff_in_sec/3600)
+#     matched_ckp = 'match%d_%dh/outputs/checkpoint'%(args.target_sys_evID,args.time_diff_in_sec/3600)
+#     run_branch_n = 'pert%d_%s%d_%dh'%(args.target_sys_evID,sc.model_code(seissol_model_n),args.strike,args.time_diff_in_sec/3600)
 if args.streess_dep_law:
     run_branch_n += '_stress_dep'
 
@@ -68,6 +80,18 @@ fname_lua = '/home/jyun/Tandem/%s/scenario_perturb.lua'%(args.model_n)
 fname_toml = '/home/jyun/Tandem/%s/parameters_perturb_scenario.toml'%(args.model_n)
 fname_shell = '/home/jyun/Tandem/routine_perturb.sh'
 
+execution = '$tandem_aging'
+hf = '25'
+ckp_options = '-ts_checkpoint_path checkpoint'
+if 'sliplaw' in args.output_branch_n:
+    args.n_node = 80
+    hf = '10'
+    execution = '$tandem_latest_slip'
+    ckp_options += ' -ts_checkpoint_storage_type unlimited'
+elif 'lowres' in args.output_branch_n and 'aginglaw' in args.output_branch_n:
+    args.n_node = 10
+    hf = '125'
+    
 print('====================== Summary of Input Parameters =======================')
 print('output_save_dir = %s'%(output_save_dir))
 print('matched_save_dir = %s'%(matched_save_dir))
@@ -80,7 +104,8 @@ print('n_node = %d'%(args.n_node))
 print('ckp_freq_step = %d'%(args.ckp_freq_step))
 print('ckp_freq_ptime = %d'%(args.ckp_freq_ptime))
 print('ckp_freq_cputime = %d'%(args.ckp_freq_cputime))
-print('dstep = %d'%(args.dstep))
+# print('dstep = %d'%(args.dstep))
+print('fin_time = unperturb_tstart + %d'%(args.add_fintime))
 if args.no_pert_period:
     print('*** Not writing perturbation period ***')
 if args.no_after_pert_period:
@@ -88,42 +113,35 @@ if args.no_after_pert_period:
 
 # -------- 1. Check if the matched checkpoint exists - if not, run make_closer
 if not os.path.exists(matched_save_dir):
+    import subprocess
     print('##### %s NOT FOUND - Need time matching #####'%(matched_save_dir))
     if args.write_on:
-        import subprocess
-        print('XXX Writing file %s XXX'%(fname_shell))
-        fshell = open(fname_shell,'w')
-        fshell.write('# Run perturbation period\n')
+        print('XXX Writing file make_closer.py XXX\n')
         # Syntax e.g., python /home/jyun/Tandem/make_closer.py perturb_stress reference 6 --write_on
         if args.time_diff_in_sec == 58320:
             subprocess.run(["python","/home/jyun/Tandem/make_closer.py",args.model_n,args.output_branch_n,"%d"%(args.target_sys_evID),"--write_on"])
         else:
             subprocess.run(["python","/home/jyun/Tandem/make_closer.py",args.model_n,args.output_branch_n,"%d"%(args.target_sys_evID),"--write_on","--time_diff_in_sec",args.time_diff_in_sec])
-        subprocess.run(["/home/jyun/Tandem/match_time_run_tandem.sh"],shell=True)
+        print('\nXXX Done writing make_closer.py -> run it first! XXX')
+    else:
+        if args.time_diff_in_sec == 58320:
+            subprocess.run(["python","/home/jyun/Tandem/make_closer.py",args.model_n,args.output_branch_n,"%d"%(args.target_sys_evID)])
+        else:
+            subprocess.run(["python","/home/jyun/Tandem/make_closer.py",args.model_n,args.output_branch_n,"%d"%(args.target_sys_evID),"--time_diff_in_sec",args.time_diff_in_sec])
+    raise SyntaxError('Run match time first')
 
 # -------- 2. Load event outputs
 from cumslip_compute import analyze_events
-if 'v6_ab2_Dc2' in output_save_dir:
-    Vths = 1e-1
-    intv = 0.15
-elif 'perturb_stress' in output_save_dir:
-    Vths = 2e-1
-    intv = 0.15
-else:
-    Vths = 1e-2
-    intv = 0.
-Vlb = 0
-dt_interm = 0
-cuttime = 0
-rths = 10
-dt_creep = 2*ch.yr2sec
-dt_coseismic = 0.5
+from read_outputs import load_cumslip_outputs
 
-cumslip_outputs = np.load('%s/cumslip_outputs_Vths_%1.0e_srvar_%03d_rths_%d_tcreep_%d_tseis_%02d.npy'%(output_save_dir,Vths,intv*100,rths,dt_creep/ch.yr2sec,dt_coseismic*10),allow_pickle=True)
-spin_up_idx = np.load('%s/spin_up_idx_Vths_%1.0e_srvar_%03d_rths_%d_tcreep_%d_tseis_%02d.npy'%(output_save_dir,Vths,intv*100,rths,dt_creep/ch.yr2sec,dt_coseismic*10))
+vmin,vmax,Vths,intv,Vlb,dt_interm,cuttime,rths,dt_creep,dt_coseismic = sc.base_event_criteria(output_save_dir,'sliprate')
+cumslip_outputs,spin_up_idx = load_cumslip_outputs(output_save_dir,'sliprate')
 tstart,tend,evdep = cumslip_outputs[0][0],cumslip_outputs[0][1],cumslip_outputs[1][1]
 system_wide = analyze_events(cumslip_outputs,rths)[2]
-idx = system_wide[system_wide>=spin_up_idx][args.target_sys_evID]
+if args.output_branch_n == 'reference':
+    idx = system_wide[system_wide>=spin_up_idx][args.target_sys_evID]
+else:
+    idx = args.target_sys_evID
 
 # -------- 3. Extract exact init time at the time of the checkpoint
 from read_outputs import load_checkpoint_info
@@ -138,35 +156,57 @@ print('=========================================================================
 
 if args.write_on:
     # -------- 4. Generate Lua scenario
-    scenarios = np.genfromtxt('perturb_stress/scenario_perturb.lua',skip_header=4,delimiter=' =',usecols=0,dtype='str')
+    # scenarios = np.genfromtxt('perturb_stress/scenario_perturb.lua',skip_header=4,delimiter=' =',usecols=0,dtype='str')
     scenario_name = '%s%d_%d'%(sc.model_code(seissol_model_n),args.strike,stepnum)
+    fsn,_ = ch.get_model_n('%s/%s'%(args.model_n,args.output_branch_n),'v')
+    fab,_ = ch.get_model_n('%s/%s'%(args.model_n,args.output_branch_n),'ab')
+    fdc,_ = ch.get_model_n('%s/%s'%(args.model_n,args.output_branch_n),'Dc')
+    lowres,Vp = 1,1e-9
+    if 'lowres' in args.output_branch_n: lowres = 5
+    if 'slowVpl' in args.output_branch_n: Vp = 3.2e-11
+
     if args.streess_dep_law:
         scenario_name += '_stress_dep'
-    if scenario_name in scenarios: # Check if the BEFORE scenario is already there
-        print('%s already exists - skip writing lua file'%(scenario_name))
+    if args.output_branch_n != 'reference':
+        scenario_name += '_%s'%(args.output_branch_n)
+    
+    # if scenario_name in scenarios: # Check if the BEFORE scenario is already there
+    #     print('%s already exists - skip writing lua file'%(scenario_name))
+    # else:
+    print('XXX Writing file %s XXX'%(fname_lua))
+    # flua = open(fname_lua,'a')
+    flua = open(fname_lua,'w')
+    flua.write('package.path = package.path .. ";/home/jyun/Tandem"\n')
+    flua.write('local ridgecrest54 = require "matfric_Fourier_main_perturb"\n')
+    flua.write('local ridgecrest54_stress_dep = require "matfric_Fourier_main_perturb_stress_dep"\n')
+    flua.write('local ridgecrest54_spinup = require "matfric_Fourier_main_perturb_spinup"\n\n')
+    if args.streess_dep_law:
+        flua.write('%s = ridgecrest54_stress_dep.new{model_n=\'%s\',strike=%d,fcoeff=%1.1f,dt=%1.2f,init_time=%1.18e,fsn=%d,fab=%d,fdc=%d,lowres=%d,Vp=%g}'\
+                    %(scenario_name,seissol_model_n,args.strike,fcoeff,args.dt,init_time,fsn,fab,fdc,lowres,Vp))
+    elif 'spinup' in args.output_branch_n:
+        flua.write('%s = ridgecrest54_spinup.new{model_n=\'%s\',strike=%d,fcoeff=%1.1f,dt=%1.2f,init_time=%1.18e,fsn=%d,fab=%d,fdc=%d,lowres=%d,Vp=%g}'\
+                    %(scenario_name,seissol_model_n,args.strike,fcoeff,args.dt,init_time,fsn,fab,fdc,lowres,Vp))
     else:
-        print('XXX Writing file %s XXX'%(fname_lua))
-        flua = open(fname_lua,'a')
-        if args.streess_dep_law:
-            flua.write('\n%s = ridgecrest54_stress_dep.new{model_n=\'%s\',strike=%d,fcoeff=%1.1f,dt=%1.2f,init_time=%1.18e}'%(scenario_name,seissol_model_n,args.strike,fcoeff,args.dt,init_time))
-        else:
-            flua.write('\n%s = ridgecrest54.new{model_n=\'%s\',strike=%d,fcoeff=%1.1f,dt=%1.2f,init_time=%1.18e}'%(scenario_name,seissol_model_n,args.strike,fcoeff,args.dt,init_time))
-        flua.close()
+        flua.write('%s = ridgecrest54.new{model_n=\'%s\',strike=%d,fcoeff=%1.1f,dt=%1.2f,init_time=%1.18e,fsn=%d,fab=%d,fdc=%d,lowres=%d,Vp=%g}'\
+                    %(scenario_name,seissol_model_n,args.strike,fcoeff,args.dt,init_time,fsn,fab,fdc,lowres,Vp))
+    flua.close()
 
     # -------- 5. Generate parameter file
-    # 5.1. Before perturbation
     print('XXX Writing file %s XXX'%(fname_toml))
     fpar = open(fname_toml,'w')
     fpar.write('final_time = 157680000000\n')
-    fpar.write('mesh_file = "ridgecrest_hf25.msh"\n')
+    fpar.write('mesh_file = "ridgecrest_hf%s.msh"\n'%(hf))
     fpar.write('mode = "QDGreen"\n')
     fpar.write('type = "poisson"\n')
-    fpar.write('lib = "scenario_perturb.lua"\n')
+    fpar.write('lib = "%s"\n'%(fname_lua.split('/')[-1]))
     fpar.write('scenario = "%s"\n'%(scenario_name))
     fpar.write('ref_normal = [-1, 0]\n')
     fpar.write('boundary_linear = true\n\n')
 
-    fpar.write('gf_checkpoint_prefix = "/export/dump/jyun/GreensFunctions/ridgecrest_hf25"\n\n')
+    if 'slowVpl' in args.output_branch_n:
+        fpar.write('gf_checkpoint_prefix = "/export/dump/jyun/GreensFunctions/ridgecrest_hf%s_slowVpl"\n\n'%(hf))
+    else:
+        fpar.write('gf_checkpoint_prefix = "/export/dump/jyun/GreensFunctions/ridgecrest_hf%s"\n\n'%(hf))
 
     fpar.write('[fault_probe_output]\n')
     fpar.write('prefix = "faultp_"\n')
@@ -192,7 +232,8 @@ if args.write_on:
                     'python /home/jyun/Tandem/get_plots.py /export/dump/jyun/$1/$2 -c; }\n')
     fshell.write('read_time_full() { /home/jyun/Tandem/read_time_recursive "/export/dump/jyun/$1/$2"; }\n')
     fshell.write('existckp_full() { ls "/export/dump/jyun/$1/$2"; }\n')
-    fshell.write('''tandem_aging='/home/jyun/softwares/project-tandem/build-cp-test-complete/app/tandem'\n\n''')
+    fshell.write('''tandem_aging='/home/jyun/softwares/project-tandem/build-cp-test-complete/app/tandem'\n''')
+    fshell.write('''tandem_latest_slip='/home/jyun/softwares/project-tandem/build-tsckp-slip/app/tandem'\n\n''')
 
     fshell.write('model_n=%s\n'%(args.model_n))
     fshell.write('tdhome=/home/jyun/Tandem\n')
@@ -216,17 +257,17 @@ if args.write_on:
         fshell.write('# If safe, proceed\n')
         if args.multiply == 30:
             # -- Below lines are for X30 model that nucleates immediately
-            fshell.write('mpiexec -bind-to core -n %d $tandem_aging $setup_dir/%s --petsc -ts_checkpoint_load ../%s/step%d '
-                        '-ts_adapt_dt_max %.2f -ts_max_steps %d -ts_checkpoint_path checkpoint '
+            fshell.write('mpiexec -bind-to core -n %d %s $setup_dir/%s --petsc -ts_checkpoint_load ../%s/step%d '
+                        '-ts_adapt_dt_max %.2f -ts_max_steps %d %s '
                         '-ts_checkpoint_freq_step 1 -ts_checkpoint_freq_physical_time %d -ts_checkpoint_freq_cputime %d '
                         '-options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log\n\n'\
-                        %(args.n_node,fname_toml.split('/')[-1],matched_ckp,stepnum,args.dt,maxstep,args.ckp_freq_ptime,args.ckp_freq_cputime))
+                        %(args.n_node,execution,fname_toml.split('/')[-1],matched_ckp,stepnum,args.dt,maxstep,ckp_options,args.ckp_freq_ptime,args.ckp_freq_cputime))
         else:
-            fshell.write('mpiexec -bind-to core -n %d $tandem_aging $setup_dir/%s --petsc -ts_checkpoint_load ../%s/step%d '
-                        '-ts_adapt_type none -ts_dt %.2f -ts_max_steps %d -ts_checkpoint_path checkpoint '
+            fshell.write('mpiexec -bind-to core -n %d %s $setup_dir/%s --petsc -ts_checkpoint_load ../%s/step%d '
+                        '-ts_adapt_type none -ts_dt %.2f -ts_max_steps %d %s '
                         '-ts_checkpoint_freq_step 1 -ts_checkpoint_freq_physical_time %d -ts_checkpoint_freq_cputime %d '
                         '-options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log\n\n'\
-                        %(args.n_node,fname_toml.split('/')[-1],matched_ckp,stepnum,args.dt,maxstep,args.ckp_freq_ptime,args.ckp_freq_cputime))
+                        %(args.n_node,execution,fname_toml.split('/')[-1],matched_ckp,stepnum,args.dt,maxstep,ckp_options,args.ckp_freq_ptime,args.ckp_freq_cputime))
 
         # 6.2. Process the perturation period output and generate checkpoint time info
         fshell.write('# Process the perturbation period output, change the directory name, and generate checkpoint time info\n')
@@ -234,6 +275,8 @@ if args.write_on:
         fshell.write('read_time_full $model_n $branch_n\n\n')
     
     if not args.no_after_pert_period:
+        fin_time = tstart[idx] + args.add_fintime*3600
+        print('Final time: %g s'%(fin_time))
         # 6.3. Run the after perturbation period
         fshell.write('# Run the after perturbation period\n')
         fshell.write('branch_n=after_%s\n'%(run_branch_n))
@@ -248,11 +291,16 @@ if args.write_on:
         
         # 6.3.1. If safe, proceed
         fshell.write('# If safe, proceed\n')
-        fshell.write('mpiexec -bind-to core -n %d $tandem_aging $setup_dir/%s --petsc -ts_checkpoint_load ../%s/outputs/checkpoint/step%d '
-                    '-ts_adapt_type basic -ts_max_steps %d -ts_checkpoint_path checkpoint '
+        fshell.write('mpiexec -bind-to core -n %d %s $setup_dir/%s --final_time %1.15e --petsc -ts_checkpoint_load ../%s/outputs/checkpoint/step%d '
+                    '-ts_adapt_type basic %s '
                     '-ts_checkpoint_freq_step %d -ts_checkpoint_freq_physical_time %d -ts_checkpoint_freq_cputime %d '
                     '-options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log\n\n'\
-                    %(args.n_node,fname_toml.split('/')[-1],run_branch_n,maxstep,maxstep+args.dstep,args.ckp_freq_step,args.ckp_freq_ptime,args.ckp_freq_cputime))
+                    %(args.n_node,execution,fname_toml.split('/')[-1],fin_time,run_branch_n,maxstep,ckp_options,args.ckp_freq_step,args.ckp_freq_ptime,args.ckp_freq_cputime))
+        # fshell.write('mpiexec -bind-to core -n %d $tandem_aging $setup_dir/%s --petsc -ts_checkpoint_load ../%s/outputs/checkpoint/step%d '
+        #             '-ts_adapt_type basic -ts_max_steps %d -ts_checkpoint_path checkpoint '
+        #             '-ts_checkpoint_freq_step %d -ts_checkpoint_freq_physical_time %d -ts_checkpoint_freq_cputime %d '
+        #             '-options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log\n\n'\
+        #             %(args.n_node,fname_toml.split('/')[-1],run_branch_n,maxstep,maxstep+args.dstep,args.ckp_freq_step,args.ckp_freq_ptime,args.ckp_freq_cputime))
         
         # 6.4. Finally, process the after perturation period output
         fshell.write('# Finally, Process the after perturbation period output, change the directory name, and generate checkpoint time info\n')

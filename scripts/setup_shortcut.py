@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Define general setups and often used values
-Last modification: 2023.11.16.
+Last modification: 2024.04.09.
 by Jeena Yun
 """
 
@@ -32,6 +32,55 @@ class setups:
         elif len(split_n) == 3: # e.g., 'vert_slow_X2' --> vsX2_
             code = split_n[0][0]+split_n[1][0]+split_n[-1]+'_'
         return code
+    
+    def code2name(self,code):
+        # e.g., vs340, vsX2_350
+        if code[0] == 'v': 
+            model_n = 'vert'
+        elif code[0] == 'd':
+            model_n = 'dipping'
+        if code[1] == 'f':
+            model_n += '_fast'
+        elif code[1] == 's':
+            model_n += '_slow'
+        if 'X' in code:
+            model_n += '_X%d'%(int(code.split('X')[-1].split('_')[0]))
+            strike = int(code.split('_')[-1])
+        else:
+            strike = int(code[2:])
+        return model_n,strike
+
+    def tandem_modeltag(self,branch_name):
+        model_tag = 'reference'
+        target_eventid,seissol_model_n,receivef_strike,multiply,time_diff_in_h,mu = None,None,None,None,None,None
+        if 'pert' in branch_name:
+            multiply = int(1)
+            time_diff_in_h = 16.2
+            mu = 0.4
+            target_eventid = int(branch_name.split('pert')[-1].split('_')[0])
+            tails = branch_name.split('pert%d_'%(target_eventid))[-1]
+            if len(tails.split('_')) > 1:
+                if 'X' in tails:
+                    seissol_model_code = tails.split('_')[0] + '_' + tails.split('_')[1]
+                    multiply = int(seissol_model_code.split('X')[-1].split('_')[0])
+                if 'h' in tails:
+                    if len(tails.split('h')[0].split('_')[-1]) <= 2:
+                        time_diff_in_h = int(tails.split('h')[0].split('_')[-1])
+                    if len(tails.split('h')) > 2 or len(tails.split('h')[0].split('_')[-1]) > 2:
+                        model_tag = tails.split('_')[-1].split('h')[0]+'h'
+                    if 'X' not in tails:
+                        seissol_model_code = tails.split('h')[0].split('_')[0]
+                if 'X' not in tails and 'h' not in tails:
+                    seissol_model_code = tails.split('_')[0]
+                    if tails.split(seissol_model_code+'_')[-1] != 'stress_dep':
+                        model_tag = tails.split(seissol_model_code+'_')[-1]
+            else:
+                seissol_model_code = tails
+            seissol_model_n,receivef_strike = self.code2name(seissol_model_code)
+        else:
+            if branch_name != 'reference':
+                model_tag = branch_name
+        return model_tag,target_eventid,seissol_model_n,receivef_strike,multiply,time_diff_in_h,mu
     
     def write_faultprobe_loc(self,prefix_or_Hs,fid,dmin,dmax,dip=90,write_on=False):
         if isinstance(prefix_or_Hs, str):
@@ -99,6 +148,40 @@ class setups:
             print('%d m'%m,end=' ')
         if s != 0:
             print('%d s'%s)
+
+    def base_event_criteria(self,save_dir,image='sliprate'):
+        if image == 'sliprate':
+            vmax = 1e1
+            try:
+                params = np.load('%s/const_params.npy'%(save_dir),allow_pickle=True)
+                vmin = params.item().get('Vp')*1e-3
+            except:
+                vmin = 1e-12
+        elif image == 'shearT':
+            vmin,vmax = -5,5
+        else:
+            vmin,vamx = None,None
+
+        if 'v6_ab2_Dc2' in save_dir:
+            Vths = 1e-1
+            SRvar = 0.15
+        elif 'perturb_stress' in save_dir:
+            Vths = 2e-1
+            if 'diffwavelength' in save_dir or 'slowVpl' in save_dir:
+                SRvar = 0.15
+            else: # including reference
+                SRvar = 0.1
+        else:
+            Vths = 1e-2
+            SRvar = 0.1
+        Vlb = 0
+        dt_interm = 0
+        cuttime = 0
+        rths = 10
+        dt_creep = 2*self.yr2sec
+        dt_coseismic = 0.5
+
+        return vmin,vmax,Vths,SRvar,Vlb,dt_interm,cuttime,rths,dt_creep,dt_coseismic
 
     def base_val(self):
         # Base value used most commonly used

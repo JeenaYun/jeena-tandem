@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Tools for comparing stress perturbation models
-Last modification: 2024.01.09.
+Last modification: 2024.03.21.
+Example usage: python stress_model_tools.py --seissol_model_n vert_fast vert_fast vert_fast vert_fast vert_slow vert_slow vert_slow vert_slow dipping_fast dipping_fast dipping_fast dipping_fast dipping_slow dipping_slow dipping_slow dipping_slow --strike 320 330 340 350 320 330 340 350 320 330 340 350 320 330 340 350 --target_depth 7.82
 by Jeena Yun
 """
 from scipy import interpolate
@@ -12,62 +13,49 @@ import setup_shortcut
 ch = change_params.variate()
 sc = setup_shortcut.setups()
 
-def single_case(save_dir,model_n,receivef_strike,target_depth,multiply,mu,print_off):
-    if not print_off: print('Fixed event at depth = %1.2f km'%(target_depth))
-    if not print_off: print('Fixed model: %s%d'%(sc.model_code(model_n),receivef_strike))
-    if not print_off: print('Model Name | Strike | Multiply | Depth | Peak dynamic dCFS [MPa] | Static dynamic dCFS [MPa]')
-    delPn = np.load('%s/ssaf_%s_Pn_pert_mu%02d_%d.npy'%(save_dir,model_n,int(mu*10),receivef_strike))
-    delTs = np.load('%s/ssaf_%s_Ts_pert_mu%02d_%d.npy'%(save_dir,model_n,int(mu*10),receivef_strike))
-    depth_range = np.load('%s/ssaf_%s_dep_stress_pert_mu%02d_%d.npy'%(save_dir,model_n,int(mu*10),receivef_strike))
+def get_vars(delPn,delTs,depth_range,target_depth,multiply,mu):
     dCFSt = delTs*multiply + mu*(delPn*multiply)
     dcfs_at_D = [interpolate.interp1d(depth_range,dCFSt[ti])(-target_depth) for ti in range(dCFSt.shape[0])]
     peak_dynamic = np.max(dcfs_at_D)
     static = np.mean(dcfs_at_D[-10:])
-    if not print_off: print('%s\t|\t%d\t|\tX%d\t|\t%1.2f\t|\t%1.4f\t\t|\t%1.4f'%(model_n,receivef_strike,multiply,target_depth,peak_dynamic,static))
     return peak_dynamic,static
 
 def fixed_model(save_dir,model_n,receivef_strike,target_depths,multiplies,mu,print_off):
-    if not print_off: print('Fixed model: %s%d'%(sc.model_code(model_n),receivef_strike))
-    if not print_off: print('Depth | Multiply | Peak dynamic dCFS [MPa] | Static dynamic dCFS [MPa]')
+    if not print_off: 
+        if len(target_depths) == 1 and len(multiplies) == 1: 
+            print('Single event and model: model %s%d & event depth %1.2f km'%(sc.model_code(model_n),receivef_strike,target_depths[0]))
+        else:
+            print('Fixed model: %s%d'%(sc.model_code(model_n),receivef_strike))
+    if not print_off: print('--------------------------------------------------------------------------------')
+    if not print_off: print('       Depth    |    Multiply   |    Peak dCFS [MPa]    |   Static dCFS [MPa]   ')
+    if not print_off: print('----------------+---------------+-----------------------+-----------------------')
     delPn = np.load('%s/ssaf_%s_Pn_pert_mu%02d_%d.npy'%(save_dir,model_n,int(mu*10),receivef_strike))
     delTs = np.load('%s/ssaf_%s_Ts_pert_mu%02d_%d.npy'%(save_dir,model_n,int(mu*10),receivef_strike))
     depth_range = np.load('%s/ssaf_%s_dep_stress_pert_mu%02d_%d.npy'%(save_dir,model_n,int(mu*10),receivef_strike))
-
     mlen = max([len(target_depths),len(multiplies)])
+    if len(target_depths) == 1: target_depths = target_depths[0]*np.ones(mlen)
+    if len(multiplies) == 1: multiplies = multiplies[0]*np.ones(mlen)
     peak_dynamic,static = np.zeros(mlen),np.zeros(mlen)
-    if len(target_depths) == len(multiplies):
-        for it in range(len(target_depths)):
-            target_depth = target_depths[it]
-            multiply = multiplies[it]
-            dCFSt = delTs*multiply + mu*(delPn*multiply)
-            dcfs_at_D = [interpolate.interp1d(depth_range,dCFSt[ti])(-target_depth) for ti in range(dCFSt.shape[0])]
-            if not print_off: print('%1.2f\t|\tX%d\t|\t%1.4f\t\t|\t%1.4f'%(target_depth,multiply,np.max(dcfs_at_D),np.mean(dcfs_at_D[-10:])))
-            peak_dynamic[it] = np.max(dcfs_at_D)
-            static[it] = np.mean(dcfs_at_D[-10:])
-    elif len(target_depths) == 1:
-        target_depth = target_depths[0]
-        for it in range(len(multiplies)):
-            multiply = multiplies[it]
-            dCFSt = delTs*multiply + mu*(delPn*multiply)
-            dcfs_at_D = [interpolate.interp1d(depth_range,dCFSt[ti])(-target_depth) for ti in range(dCFSt.shape[0])]
-            if not print_off: print('%1.2f\t|\tX%d\t|\t%1.4f\t\t|\t%1.4f'%(target_depth,multiply,np.max(dcfs_at_D),np.mean(dcfs_at_D[-10:])))
-            peak_dynamic[it] = np.max(dcfs_at_D)
-            static[it] = np.mean(dcfs_at_D[-10:])
-    elif len(multiplies) == 1:
-        multiply = multiplies[0]
-        for it in range(len(target_depths)):
-            target_depth = target_depths[it]
-            dCFSt = delTs*multiply + mu*(delPn*multiply)
-            dcfs_at_D = [interpolate.interp1d(depth_range,dCFSt[ti])(-target_depth) for ti in range(dCFSt.shape[0])]
-            if not print_off: print('%1.2f\t|\tX%d\t|\t%1.4f\t\t|\t%1.4f'%(target_depth,multiply,np.max(dcfs_at_D),np.mean(dcfs_at_D[-10:])))
-            peak_dynamic[it] = np.max(dcfs_at_D)
-            static[it] = np.mean(dcfs_at_D[-10:])
+    for it in range(mlen):
+        target_depth = target_depths[it]
+        multiply = multiplies[it]
+        pd,st = get_vars(delPn,delTs,depth_range,target_depth,multiply,mu)
+        peak_dynamic[it] = pd
+        static[it] = st
+        if not print_off: print('\t%1.2f\t|\tX%d\t|\t%1.4f\t\t|\t%1.4f'%(target_depth,multiply,pd,st))
     return peak_dynamic,static
 
 def fixed_event(save_dir,model_ns,receivef_strikes,target_depth,multiplies,mu,print_off):
     if not print_off: print('Fixed event at depth = %1.2f km'%(target_depth))
-    if not print_off: print('Model Name | Strike | Multiply | Peak dynamic dCFS [MPa] | Static dynamic dCFS [MPa]')
-    if len(model_ns) != len(receivef_strikes):
+    if not print_off: print('--------------------------------------------------------------------------------------------------------')
+    if not print_off: print('       Model Name       |      Strike   |    Multiply   |    Peak dCFS [MPa]    |   Static dCFS [MPa]   ')
+    if not print_off: print('------------------------+---------------+---------------+-----------------------+-----------------------')
+    mlen = max([len(model_ns),len(receivef_strikes),len(multiplies)])
+    if len(receivef_strikes) == 1: receivef_strikes = receivef_strikes[0]*np.ones(mlen)
+    if len(multiplies) == 1: multiplies = multiplies[0]*np.ones(mlen)
+
+    if len(model_ns) != len(receivef_strikes) != len(multiplies):
+        print('len(model_ns) = %d; len(receivef_strikes) = %d; len(multiplies) = %d'%(len(model_ns),len(receivef_strikes),len(multiplies)))
         raise SyntaxError('Lengthx of models do not match!')
     peak_dynamic,static = np.zeros(len(model_ns)),np.zeros(len(model_ns))
     for it in range(len(model_ns)):
@@ -77,11 +65,10 @@ def fixed_event(save_dir,model_ns,receivef_strikes,target_depth,multiplies,mu,pr
         delPn = np.load('%s/ssaf_%s_Pn_pert_mu%02d_%d.npy'%(save_dir,model_n,int(mu*10),receivef_strike))
         delTs = np.load('%s/ssaf_%s_Ts_pert_mu%02d_%d.npy'%(save_dir,model_n,int(mu*10),receivef_strike))
         depth_range = np.load('%s/ssaf_%s_dep_stress_pert_mu%02d_%d.npy'%(save_dir,model_n,int(mu*10),receivef_strike))
-        dCFSt = delTs*multiply + mu*(delPn*multiply)
-        dcfs_at_D = [interpolate.interp1d(depth_range,dCFSt[ti])(-target_depth) for ti in range(dCFSt.shape[0])]
-        if not print_off: print('%s\t|\t%d\t|\tX%d\t|\t%1.4f\t\t|\t%1.4f'%(model_n,receivef_strike,multiply,np.max(dcfs_at_D),np.mean(dcfs_at_D[-10:])))
-        peak_dynamic[it] = np.max(dcfs_at_D)
-        static[it] = np.mean(dcfs_at_D[-10:])
+        pd,st = get_vars(delPn,delTs,depth_range,target_depth,multiply,mu)
+        peak_dynamic[it] = pd
+        static[it] = st
+        if not print_off: print('\t%s\t|\t%d\t|\tX%d\t|\t%1.4f\t\t|\t%1.4f'%(model_n,receivef_strike,multiply,pd,st))
     return peak_dynamic,static
 
 # ---------------------- Set input parameters
@@ -99,10 +86,12 @@ def main(raw_args=None):
         multiply = np.ones(len(args.seissol_model_n))
     else:
         multiply = args.multiply
+    print()
     if len(args.seissol_model_n) == 1:
         fixed_model(args.save_dir,args.seissol_model_n[0],args.strike[0],args.target_depths,multiply,args.mu,args.print_off)
     elif len(args.target_depths) == 1:
         fixed_event(args.save_dir,args.seissol_model_n,args.strike,args.target_depths[0],multiply,args.mu,args.print_off)
+    print()
 
 if __name__ == '__main__':
     main()

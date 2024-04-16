@@ -2,7 +2,7 @@
 '''
 Functions related to plotting cumulative slip vs. depth plot
 By Jeena Yun
-Last modification: 2024.01.09.
+Last modification: 2024.04.01.
 '''
 import numpy as np
 from scipy import interpolate
@@ -18,7 +18,7 @@ wk2sec = 7*24*60*60
 # cumslip_outputs[3] = [cscoseis,depcoseis]
 # cumslip_outputs[4] = [csinterm,depinterm]
 
-def event_times(dep,outputs,Vlb,Vths,cuttime,dt_coseismic,intv,print_on=True):
+def event_times(dep,outputs,Vlb,Vths,cuttime,dt_coseismic,SRvar,print_on=True):
     time = np.array(outputs[0][:,0])
     sliprate = abs(np.array([outputs[i][:,4] for i in np.argsort(abs(dep))]))
     z = np.sort(abs(dep))
@@ -57,9 +57,10 @@ def event_times(dep,outputs,Vlb,Vths,cuttime,dt_coseismic,intv,print_on=True):
         ite_all = np.array([np.argmin(abs(time-t)) for t in tend])
         diffcrit = np.quantile(abs(np.diff(np.log10(psr[events]))),0.98)
         new_its_all = its_all.copy()
+        interval = 0.15
         for k,ts in enumerate(its_all):
             psr_inc = abs(np.diff(np.log10(psr)))[ts-1]
-            width = int((ite_all[k] - ts)*intv)
+            width = int((ite_all[k] - ts)*interval)
             large_diffs = np.where(abs(np.diff(np.log10(psr)))[ts-1:ts-1+width]>=diffcrit)[0]
             if psr_inc < diffcrit and len(large_diffs) > 0:
                 new_its_all[k] = large_diffs[0] + ts
@@ -67,10 +68,12 @@ def event_times(dep,outputs,Vlb,Vths,cuttime,dt_coseismic,intv,print_on=True):
         tstart = time[new_its_all]
 
         # ----- Remove events whose maximum peak slip rate is lower than certain criterion
+        # SRvar = 0.1 # reference
+        # SRvar = 0.15 # diffwavelength
         varsr = np.array([np.log10(psr[new_its_all[k]:ite_all[k]+1]).max()-np.log10(psr[new_its_all[k]:ite_all[k]+1]).min() for k in range(len(tstart))])
-        ii = np.where(varsr/abs(np.log10(Vths))>=0.1)[0]
+        ii = np.where(varsr/abs(np.log10(Vths))>=SRvar)[0]
         if len(ii) < len(tstart):
-            if print_on: print('Negligible events with SR variation < 0.1Vths:',np.where(varsr/abs(np.log10(Vths))<0.1)[0])
+            if print_on: print('Negligible events with SR variation < %gVths:'%(SRvar),np.where(varsr/abs(np.log10(Vths))<SRvar)[0])
             tstart = tstart[ii]
             tend = tend[ii]
             evdep = evdep[ii]
@@ -91,7 +94,7 @@ def event_times(dep,outputs,Vlb,Vths,cuttime,dt_coseismic,intv,print_on=True):
         tstart, tend, evdep = [],[],[]
     return tstart, tend, evdep
     
-def compute_cumslip(outputs,dep,cuttime,Vlb,Vths,dt_creep,dt_coseismic,dt_interm,intv,print_on=True):
+def compute_cumslip(outputs,dep,cuttime,Vlb,Vths,dt_creep,dt_coseismic,dt_interm,SRvar,print_on=True):
     if print_on: print('Compute cumulative slip vs. depth >>> ',end='')
 
     if print_on: 
@@ -112,8 +115,8 @@ def compute_cumslip(outputs,dep,cuttime,Vlb,Vths,dt_creep,dt_coseismic,dt_interm
 
     # Obtain globally min. event start times and max. event tend times
     if dt_interm > 0:
-        tstart_interm, tend_interm, evdep = event_times(dep,outputs,Vlb,Vths,cuttime,dt_coseismic,intv,print_on)
-    tstart_coseis, tend_coseis, evdep = event_times(dep,outputs,0,Vths,cuttime,dt_coseismic,intv,print_on)
+        tstart_interm, tend_interm, evdep = event_times(dep,outputs,Vlb,Vths,cuttime,dt_coseismic,SRvar,print_on)
+    tstart_coseis, tend_coseis, evdep = event_times(dep,outputs,0,Vths,cuttime,dt_coseismic,SRvar,print_on)
     if len(tstart_coseis) > 0:
         evslip = np.zeros(tstart_coseis.shape)
     else:
@@ -143,7 +146,11 @@ def compute_cumslip(outputs,dep,cuttime,Vlb,Vths,dt_creep,dt_coseismic,dt_interm
             cs = []
             depth = []
             for j in range(len(tstart_interm)):
-                tinterm = np.arange(tstart_interm[j],tend_interm[j],dt_interm)
+                if tend_interm[j] - tstart_interm[j] >= dt_interm:
+                    tcoseis = np.arange(tstart_interm[j],tend_interm[j],dt_interm)
+                else:
+                    tcoseis = np.arange(tstart_interm[j],tend_interm[j]+2*dt_interm,dt_interm)
+                # tinterm = np.arange(tstart_interm[j],tend_interm[j],dt_interm)
                 cs.append(f(tinterm))
                 depth.append(z*np.ones(len(tinterm)))
 
@@ -156,7 +163,10 @@ def compute_cumslip(outputs,dep,cuttime,Vlb,Vths,dt_creep,dt_coseismic,dt_interm
             depth = []
             Dbar = []
             for j in range(len(tstart_coseis)):
-                tcoseis = np.arange(tstart_coseis[j],tend_coseis[j],dt_coseismic)
+                if tend_coseis[j] - tstart_coseis[j] >= dt_coseismic:
+                    tcoseis = np.arange(tstart_coseis[j],tend_coseis[j],dt_coseismic)
+                else:
+                    tcoseis = np.arange(tstart_coseis[j],tstart_coseis[j]+2*dt_coseismic,dt_coseismic)
                 cs.append(f(tcoseis))
                 depth.append(z*np.ones(len(tcoseis)))
                 Dbar.append(f(tcoseis)[-1]-f(tcoseis)[0])
@@ -307,8 +317,8 @@ def SSE_event_times(dep,outputs,depth_range,tstart,tend,print_on=True):
         interval = np.hstack(([1e8],time[tmp_its][1:]-time[tmp_ite][:-1]))
         its_filter = np.ones(len(tmp_its),dtype=bool)
         ite_filter = np.ones(len(tmp_ite),dtype=bool)
-        for u,intv in enumerate(interval):
-            if intv <= 3e7:
+        for u,SRvar in enumerate(interval):
+            if SRvar <= 3e7:
                 its_filter[u] = False
                 ite_filter[u-1] = False
         its = tmp_its[its_filter]

@@ -1,95 +1,129 @@
-# from read_outputs import read_domain_probe_outputs
+import numpy as np
+import matplotlib.pylab as plt
+from pub_faultoutputs_image import *
+import myplots
+from read_outputs import load_fault_probe_outputs
+from cumslip_compute import *
+import os
+mp = myplots.Figpref()
 
-# save_dir = '/export/dump/jyun/perturb_stress/reference'
-# read_domain_probe_outputs(save_dir,save_on=True)
-import argparse
-# import numpy as np
-parser = argparse.ArgumentParser()
-parser.add_argument("--save_on",action="store_true",help=": Save on?")
-# parser.add_argument("-spup","--spin_up", nargs=2, type=str, help=": Plot with spin-up after given amount of quantity",default=[])
-args = parser.parse_args()
+yr2sec = 60*60*24*365
+# prefix = 'perturb_stress/after_pert8_vsX10_340'
+prefix = 'perturb_stress/pert8_vsX30_340'
+save_dir = '/export/dump/jyun/'+prefix
+outputs,dep,params = load_fault_probe_outputs(save_dir)
 
-print(bool(abs(1-int(args.save_on))))
-if args.save_on:
-    print('Save on being True')
+# ----------
+image = 'sliprate'
+print('Image %s figure'%(image))
+
+if image == 'sliprate':
+    vmin,vmax = 1e-12,1e1
+elif image == 'shearT':
+    vmin,vmax = -5,5
 else:
-    print('Save on being False')
-# print(len(args.spin_up))
-# print(args.spin_up)
-# if len(args.spin_up) == 1:
-#     print('Field npts not defined - using default value 50')
-#     args.spin_up.append(50)
-# print(args.spin_up)
+    vmin,vamx = None,None
 
-# ---
-# import numpy as np
-# import matplotlib.pylab as plt
-# import myplots
-# from read_outputs import *
+if 'v6_ab2_Dc2' in prefix:
+    Vths = 1e-1
+    intv = 0.15
+elif 'perturb_stress' in prefix:
+    Vths = 2e-1
+    intv = 0.15
+else:
+    Vths = 1e-2
+    intv = 0.
+Vlb = 0
+dt_interm = 0
+cuttime = 0
+rths = 10
+dt_creep = 2*yr2sec
+dt_coseismic = 0.5
 
-# mp = myplots.Figpref()
+print('Load saved file')
+cumslip_outputs = np.load('/export/dump/jyun/perturb_stress/reference/cumslip_outputs_Vths_%1.0e_srvar_%03d_rths_%d_tcreep_%d_tseis_%02d.npy'%(Vths,intv*100,rths,dt_creep/yr2sec,dt_coseismic*10),allow_pickle=True)
+ref_tstart,ref_tend,ref_evdep = cumslip_outputs[0][0],cumslip_outputs[0][1],cumslip_outputs[1][1]
 
-# # prefix = 'Thakur20_various_fractal_profiles/v6_Dc2_DZ_long'
-# prefix = 'scaling_test'
-# save_dir = 'models/'+prefix
-# compute_and_save = 1
+# ----------
+print('Compute event details')
+cumslip_outputs = compute_cumslip(outputs,dep,cuttime,Vlb,Vths,dt_creep,dt_coseismic,dt_interm,intv)
+tstart,tend,evdep = cumslip_outputs[0][0],cumslip_outputs[0][1],cumslip_outputs[1][1]
+rupture_length,av_slip,system_wide,partial_rupture,event_cluster,lead_fs,major_pr,minor_pr = analyze_events(cumslip_outputs,rths)
+if len(major_pr) > 0: major_pr = event_cluster[major_pr][:,1]
+if len(minor_pr) > 0: minor_pr = event_cluster[minor_pr][:,1]
 
-# if compute_and_save:
-#     read_fault_outputs(save_dir,save_on=True)
-# else:
-#     outputs = load_fault_outputs(save_dir)
+print('Total number of events: %d'%(len(tstart)))
+print('System-size indexes:',system_wide)
+print('Evdep:',evdep)
+print('Event depth with perturbation:',evdep[system_wide])
 
+# ----------
+ii = np.argsort(abs(dep))
+time = outputs[0,:,0]
+its_all = np.array([np.argmin(abs(outputs[0][:,0]-t)) for t in tstart])
 
-# V0 = float(input('Reference slip velocity V0 [m/s]: '))
-# print(V0)
+# ----------
+publish = True
+save_on = 1
 
-# ---
-# import numpy as np
-# import matplotlib.pyplot as plt
-# from cumslip_compute import *
-# from misc_plots import *
-# import myplots
-# import change_params
-# import setup_shortcut
+# --------- X10 script (full)
+# ax=fout_image(image,outputs,dep,params,cumslip_outputs,save_dir,prefix,rths,vmin,vmax,Vths,[],horz_size=12,vert_size=4.5,plot_in_timestep=True,plot_in_sec=False,cb_off=False,publish=publish,save_on=False)
+# plt.scatter(its_all[2],evdep[2],s=200,marker='*',facecolor=mydarkviolet,edgecolor='k',lw=0.7,zorder=3,label='System-size events')
+# if len(lead_fs) > 0:
+#     plt.scatter(its_all[0],evdep[0],s=40,marker='d',facecolor=mydarkviolet,edgecolor='k',lw=0.7,zorder=3,label='Leading foreshocks')
+# if len(partial_rupture) > 0:
+#     plt.scatter(its_all[[1,3,4,5,6]],evdep[[1,3,4,5,6]],s=40,marker='d',facecolor='w',edgecolor='k',lw=0.7,zorder=2,label='Partial rupture events')
+# ax.text(its_all[2]-250,evdep[2]+0.75,'3',color='w',fontsize=11.5,fontweight='bold',ha='right',va='top')
+# ax.text(its_all[1]-150,evdep[1]-0.3,'2',color='w',fontsize=11.5,fontweight='bold',ha='right',va='bottom')
+# ax.text(its_all[0],evdep[0]-0.5,'1',color='w',fontsize=11.5,fontweight='bold',ha='right',va='bottom')
+# ax.legend(fontsize=10,framealpha=1,loc='lower right')
+# ax.vlines(x=np.argmin(abs(time-ref_tstart[88])),ymin=0,ymax=24,linestyle='--',color='w',lw=1.5)
+# ax.text(np.argmin(abs(time-ref_tstart[88]))+500,23,'← Time of the unperturbed mainshock',color='w',fontsize=14.5,fontweight='bold',ha='left',va='bottom')
+# ax.set_ylim(0,24)
+# ax.invert_yaxis()
+# plt.tight_layout()
+# if save_on: plt.savefig('%s/test.png'%(save_dir))
+# if save_on: plt.savefig('%s/sliprate_timestep_with_previous_event.png'%(save_dir),dpi=350)
+# print('saving png done')
+# if save_on: plt.savefig('%s/sliprate_timestep_with_previous_event.pdf'%(save_dir),dpi=350)
+# print('saving pdf done')
 
-# sc = setup_shortcut.setups()
-# mp = myplots.Figpref()
-# ch = change_params.variate()
+# --------- X10 script (decimated)
+# ax=fout_image(image,outputs[:,::2,:],dep,params,cumslip_outputs,save_dir,prefix,rths,vmin,vmax,Vths,[],horz_size=12,vert_size=4.5,plot_in_timestep=True,plot_in_sec=False,cb_off=False,publish=publish,save_on=False)
+# plt.scatter(its_all[2]/2,evdep[2],s=200,marker='*',facecolor=mydarkviolet,edgecolor='k',lw=0.7,zorder=3,label='System-size events')
+# if len(lead_fs) > 0:
+#     plt.scatter(its_all[0]/2,evdep[0],s=40,marker='d',facecolor=mydarkviolet,edgecolor='k',lw=0.7,zorder=3,label='Leading foreshocks')
+# if len(partial_rupture) > 0:
+#     plt.scatter(its_all[[1,3,4,5,6]]/2,evdep[[1,3,4,5,6]],s=40,marker='d',facecolor='w',edgecolor='k',lw=0.7,zorder=2,label='Partial rupture events')
+# ax.text((its_all[2]-250)/2,evdep[2]+0.75,'3',color='w',fontsize=11.5,fontweight='bold',ha='right',va='top')
+# ax.text((its_all[1]-150)/2,evdep[1]-0.3,'2',color='w',fontsize=11.5,fontweight='bold',ha='right',va='bottom')
+# ax.text((its_all[0])/2,evdep[0]-0.5,'1',color='w',fontsize=11.5,fontweight='bold',ha='right',va='bottom')
+# ax.legend(fontsize=10,framealpha=1,loc='lower right')
+# ax.vlines(x=np.argmin(abs(time-ref_tstart[88]))/2,ymin=0,ymax=24,linestyle='--',color='w',lw=1.5)
+# ax.text((np.argmin(abs(time-ref_tstart[88]))+500)/2,23,'← Time of the unperturbed mainshock',color='w',fontsize=14.5,fontweight='bold',ha='left',va='bottom')
+# ax.set_ylim(0,24)
+# ax.invert_yaxis()
+# xl = ax.get_xlim()
+# locs, labels = plt.xticks()
+# x2 = ['%d'%(l*2) for l in locs]
+# plt.xticks(locs,x2)
+# ax.set_xlim(xl)
+# plt.tight_layout()
+# if save_on: plt.savefig('%s/test.png'%(save_dir))
+# if save_on: plt.savefig('%s/sliprate_timestep_with_previous_event.png'%(save_dir),dpi=350)
+# print('saving png done')
+# if save_on: plt.savefig('%s/sliprate_timestep_with_previous_event.pdf'%(save_dir),dpi=350)
+# print('saving pdf done')
 
-# prefix_list = ['Thakur20_hetero_stress/n8',
-#                'Thakur20_various_fractal_profiles/ab2',
-#                'Thakur20_various_fractal_profiles/Dc1',
-#                'Thakur20_various_fractal_profiles/v6_Dc1_long',
-#                'Thakur20_various_fractal_profiles/v6_ab2',
-#                'Thakur20_various_fractal_profiles/ab2_Dc1']
-# dir = '/Users/j4yun/Library/CloudStorage/Dropbox/Codes/Ridgecrest_CSC/Tandem'
-
-# Vths = 1e-2
-# Vlb = 0
-# dt_interm = 0
-# cuttime = 0
-# mingap = 60
-# rths = 10
-# dt_creep = 2*ch.yr2sec
-# dt_coseismic = 0.5
-
-# for uu,prefix in enumerate(prefix_list):
-#     print(prefix)
-#     save_dir = dir + '/models/'+prefix
-#     plot_dir = 'plots/' + prefix
-
-#     # ---------- Load outputs
-#     print('Load saved data: %s/outputs'%(save_dir))
-#     outputs = np.load('%s/outputs.npy'%(save_dir))
-#     print('Load saved data: %s/outputs_depthinfo'%(save_dir))
-#     dep = np.load('%s/outputs_depthinfo.npy'%(save_dir))
-#     params = sc.extract_from_lua(prefix,save_on=True)
-
-#     cumslip_outputs = compute_cumslip(outputs,dep,cuttime,Vlb,Vths,dt_creep,dt_coseismic,dt_interm,mingap)
-#     if np.max(cumslip_outputs[3][0]) > 35:
-#         spin_up = 10
-#     else:
-#         spin_up = 2.5
-#     spin_up_idx = compute_spinup(outputs,dep,cuttime,cumslip_outputs,spin_up)[-1]
-#     plot_STF(save_dir,outputs,dep,cumslip_outputs,spin_up_idx,rths=10,save_on=True)
-
+# --------- X30 script
+ax=fout_image(image,outputs,dep,params,cumslip_outputs,save_dir,prefix,rths,vmin,vmax,Vths,[],horz_size=8,vert_size=4.5,plot_in_timestep=False,plot_in_sec=True,cb_off=False,publish=publish,save_on=False)
+plt.scatter(tstart[0]-time[0],evdep[0],s=200,marker='*',facecolor=mydarkviolet,edgecolor='k',lw=0.7,zorder=3,label='System-size event')
+ax.legend(fontsize=10,framealpha=1,loc='lower right')
+ax.set_ylim(0,24)
+ax.invert_yaxis()
+plt.tight_layout()
+# if save_on: plt.savefig('%s/test.png'%(save_dir))
+# if save_on: plt.savefig('%s/sliprate_image.png'%(save_dir),dpi=350)
+# print('saving png done')
+if save_on: plt.savefig('%s/sliprate_image.pdf'%(save_dir),dpi=350)
+print('saving pdf done')
