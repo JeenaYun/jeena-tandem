@@ -92,11 +92,12 @@ class variate:
 
     def what_is_varied(self,prefix,print_on=True):
         fsigma,tail = self.get_model_n(prefix,'v')
-        ff0,_ = self.get_model_n(prefix,'f0')
+        # ff0,_ = self.get_model_n(prefix,'f0')
         fab,_ = self.get_model_n(prefix,'ab')
         fdc,_ = self.get_model_n(prefix,'Dc')
-        newb,_ = self.get_model_n(prefix,'B')
-        newL,_ = self.get_model_n(prefix,'L')
+        # newb,_ = self.get_model_n(prefix,'B')
+        # newL,_ = self.get_model_n(prefix,'L')
+        ff0,newb,newL = None,None,None
         dz,_ = self.get_model_n(prefix,'DZ')
 
         if print_on:

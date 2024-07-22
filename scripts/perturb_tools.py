@@ -27,9 +27,8 @@ class PERTURB:
         from cumslip_compute import analyze_events,compute_cumslip
         _,_,self.Vths,self.SRvar,self.Vlb,self.dt_interm,self.cuttime,self.rths,self.dt_creep,self.dt_coseismic = sc.base_event_criteria(self.cumslip_dir)
 
-    def load_output(self,pert=None,after_pert=None,ckp_on=False,load_var=True,print_on=True):
+    def load_output(self,pert=None,after_pert=None,ckp_on=False,load_var=True,print_on=True,short_idx=None):
         from read_outputs import load_fault_probe_outputs,load_checkpoint_info,load_short_fault_probe_outputs
-        short_idx = None
         if self.model_tag == 'reference' and 'pert' not in self.branch_name:
             start_time = np.load('%s/short_outputs_start_time.npy'%(self.save_dir))
             if after_pert is not None:
@@ -41,7 +40,7 @@ class PERTURB:
                     #     outputs1_2,dep1_2,params1_2 = load_short_fault_probe_outputs(self.save_dir,short_idx+1)
                 else: 
                     short_idx = 0
-            else:
+            elif pert is not None:
                 if len(np.where(start_time<=np.min(pert.outputs[0,0,0]))[0]) > 0:
                     short_idx = np.where(start_time<=np.min(pert.outputs[0,0,0]))[0][-1]
                 else:
@@ -159,15 +158,19 @@ class ROUTINE_PERTURB:
         # ----------------- Create classes
         if base_model_tag is None:
             ref = PERTURB('reference')
-            pert = PERTURB('%s_%s'%(pert_name,base_model_tag))
-            after_pert = PERTURB('after_%s_%s'%(pert_name,base_model_tag))
+            pert = PERTURB('%s'%(pert_name))
+            after_pert = PERTURB('after_%s'%(pert_name))
         else:
-            if base_model_tag == 'stress_dep':
-                ref = PERTURB('reference')
+            if 'stress_dep' in base_model_tag:
+                if base_model_tag == 'stress_dep':
+                    ref = PERTURB('reference')
+                else:
+                    ref = PERTURB(base_model_tag.split('_stress_dep')[0])
             else:
                 ref = PERTURB(base_model_tag)
             pert = PERTURB('%s_%s'%(pert_name,base_model_tag))
             after_pert = PERTURB('after_%s_%s'%(pert_name,base_model_tag))
+            # after_pert = PERTURB('first_after_%s_%s'%(pert_name,base_model_tag))
         target_eventid = int(pert_name.split('pert')[-1].split('_')[0])
 
         print('----------------- Load outputs -----------------')
@@ -186,13 +189,13 @@ class ROUTINE_PERTURB:
     
     def estimate_triggering_response(self,ref,after_pert):
         noline = False
-        if len(after_pert.system_wide) == 0 | len(after_pert.system_wide) > 1:
+        if len(after_pert.system_wide) == 0 or len(after_pert.tstart) == 0:
             import warnings
             warnings.warn('No system_size event detected - check back the sequence')
-            after_tstart = after_pert.tstart[after_pert.system_wide[-1]]
-        elif len(after_pert.tstart) == 0:
-            after_tstart = ref.tstart[ref.idx]
+            after_tstart = 0
             noline = True
+        elif len(after_pert.system_wide) > 1:
+            after_tstart = after_pert.tstart[after_pert.system_wide[-1]]
         else:
             after_tstart = after_pert.tstart[after_pert.system_wide]
         lag = ref.tstart[ref.idx] - after_tstart

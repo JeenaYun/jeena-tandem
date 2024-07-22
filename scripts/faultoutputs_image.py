@@ -22,7 +22,7 @@ mylightblue = (218/255,230/255,240/255)
 myygreen = (120/255,180/255,30/255)
 mylavender = (170/255,100/255,215/255)
 mydarkviolet = (145/255,80/255,180/255)
-
+mymint = (70/255,225/255,165/255)
 
 # fields: Time [s] | state [s?] | cumslip0 [m] | traction0 [MPa] | slip-rate0 [m/s] | normal-stress [MPa]
 # Index:     0     |      1     |       2      |        3        |         4        |          5 
@@ -43,21 +43,25 @@ def get_var(lab,outputs,dep,plot_in_timestep,plot_in_sec):
     idx = {'state': 1, 'slip': 2, 'shearT': 3, 'delshearT': 3, 'sliprate': 4, 'normalT': 5, 'delnormalT': 5}
     ii = np.argsort(abs(dep))
     if idx[lab] == 3 or idx[lab] == 4:
+        print('Sliprate or shear stress - start from timestep 1')
         var = outputs[ii,1:,idx[lab]]
     else:
         var = outputs[ii,:,idx[lab]]
+    # var = outputs[ii,:,idx[lab]]
 
     if lab[-1] == 'T': var = abs(var)
 
     if plot_in_timestep:
         print('Plot in time steps')
         xax = np.arange(var.shape[1])
-    elif plot_in_sec:
-        print('Plot in time [s]')
-        xax = outputs[0,:,0]
     else:
-        print('Plot in time [yrs]')
-        xax = np.array(outputs[0][:,0]/ch.yr2sec)
+        if plot_in_sec:
+            print('Plot in time [s]')
+            xax = outputs[0,:,0]
+        else:
+            print('Plot in time [yrs]')
+            xax = np.array(outputs[0][:,0]/ch.yr2sec)
+        if idx[lab] == 3 or idx[lab] == 4: xax = xax[1:]
     X,Y = np.meshgrid(xax,np.sort(abs(dep)))
 
     return X,Y,var
@@ -74,27 +78,26 @@ def gen_cmap(lab,params,vmin,vmax,Vths):
         if params is None:
             float_list = [0,mpl.colors.LogNorm(vmin,vmax)(1e-9),mpl.colors.LogNorm(vmin,vmax)(1e-6)]
         else:
+            # print(params.item().get('Vp'),params.item().get('V0'))
             float_list = [0,mpl.colors.LogNorm(vmin,vmax)(params.item().get('Vp')),mpl.colors.LogNorm(vmin,vmax)(params.item().get('V0'))]
         [float_list.append(k) for k in np.linspace(mpl.colors.LogNorm(vmin,vmax)(Vths),1,4)]
         cmap_n = get_continuous_cmap(col_list,input_hex=False,float_list=float_list)
-    elif lab == 'shearT': # ---- plotting total stress
+    elif lab == 'shearT' or lab == 'normalT': # ---- plotting total stress
         cmap_n = cram.davos
-    elif lab == 'delshearT': # ---- plotting stress change
+    elif lab == 'delshearT' or lab == 'delnormalT': # ---- plotting stress change
         cm = cram.vik
         col_list = [cm(i) for i in np.linspace(0,1,6)]
         col_list.insert(3,mpl.colors.to_rgb('w'))
         float_list = [mpl.colors.Normalize(vmin,vmax)(i) for i in np.linspace(vmin,0,4)]
         [float_list.append(mpl.colors.Normalize(vmin,vmax)(k)) for k in np.linspace(0,vmax,4)[1:]]
         cmap_n = get_continuous_cmap(col_list,input_hex=False,float_list=float_list)
-    elif lab == 'normalT': # ---- plotting total stress
-        cmap_n = cram.davos
-    elif lab == 'delnormalT': # ---- plotting stress change
-        cm = cram.vik
-        col_list = [cm(i) for i in np.linspace(0,1,6)]
-        col_list.insert(3,mpl.colors.to_rgb('w'))
-        float_list = [mpl.colors.Normalize(vmin,vmax)(i) for i in np.linspace(vmin,0,4)]
-        [float_list.append(mpl.colors.Normalize(vmin,vmax)(k)) for k in np.linspace(0,vmax,4)[1:]]
-        cmap_n = get_continuous_cmap(col_list,input_hex=False,float_list=float_list)
+    # elif : # ---- plotting stress change
+    #     cm = cram.vik
+    #     col_list = [cm(i) for i in np.linspace(0,1,6)]
+    #     col_list.insert(3,mpl.colors.to_rgb('w'))
+    #     float_list = [mpl.colors.Normalize(vmin,vmax)(i) for i in np.linspace(vmin,0,4)]
+    #     [float_list.append(mpl.colors.Normalize(vmin,vmax)(k)) for k in np.linspace(0,vmax,4)[1:]]
+    #     cmap_n = get_continuous_cmap(col_list,input_hex=False,float_list=float_list)
     elif lab == 'statevar':
         cmap_n = 'magma'
     cb_label = cb_dict[lab]
@@ -173,6 +176,10 @@ def decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,p
     system_wide,partial_rupture,event_cluster,lead_fs = analyze_events(cumslip_outputs,rths)[2:6]
     xl_opt,ver_info_opt,scatter_opt,vlines_opt,txt_opt,xlab_opt,name_opt = fig_opts
 
+    # sys_col = mydarkviolet
+    sys_col = mymint
+    pr_col = 'w'
+
     if xl_opt == 1 or xl_opt == 2:
         xl = plt.gca().get_xlim()
     elif xl_opt == 3:
@@ -200,11 +207,11 @@ def decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,p
 
     if scatter_opt == 1:
         if len(system_wide) > 0:
-            plt.scatter(xs[system_wide],evdep[system_wide],s=700,marker='*',facecolor=mydarkviolet,edgecolor='k',lw=1.5,zorder=3,label='System-size events')
+            plt.scatter(xs[system_wide],evdep[system_wide],s=700,marker='*',facecolor=sys_col,edgecolor='k',lw=1.5,zorder=3,label='System-size events')
         if len(lead_fs) > 0:
-            plt.scatter(xs[lead_fs],evdep[lead_fs],s=200,marker='d',facecolor=mydarkviolet,edgecolor='k',lw=1.5,zorder=3,label='Leading foreshocks')
+            plt.scatter(xs[lead_fs],evdep[lead_fs],s=200,marker='d',facecolor=sys_col,edgecolor='k',lw=1.5,zorder=3,label='Leading foreshocks')
         if len(partial_rupture) > 0:
-            plt.scatter(xs[partial_rupture],evdep[partial_rupture],s=200,marker='d',facecolor='w',edgecolor='k',lw=1.5,zorder=2,label='Partial rupture events')
+            plt.scatter(xs[partial_rupture],evdep[partial_rupture],s=200,marker='d',facecolor=pr_col,edgecolor='k',lw=1.5,zorder=2,label='Partial rupture events')
     else:
         isys = np.where(np.logical_and(its_all[system_wide]>=lim_s,its_all[system_wide]<=lim_e))[0]
         if len(lead_fs) > 0:
@@ -214,11 +221,11 @@ def decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,p
         else:
             ipart = []
         if len(system_wide[isys]) > 0:
-            plt.scatter(xs[system_wide][isys],evdep[system_wide][isys],s=700,marker='*',facecolor=mydarkviolet,edgecolor='k',lw=1.5,zorder=3,label='System-size events')
+            plt.scatter(xs[system_wide][isys],evdep[system_wide][isys],s=700,marker='*',facecolor=sys_col,edgecolor='k',lw=1.5,zorder=3,label='System-size events')
         if len(lead_fs) > 0:
-            plt.scatter(xs[lead_fs][ilfs],evdep[lead_fs][ilfs],s=200,marker='d',facecolor=mydarkviolet,edgecolor='k',lw=1.5,zorder=3,label='Leading foreshocks')
+            plt.scatter(xs[lead_fs][ilfs],evdep[lead_fs][ilfs],s=200,marker='d',facecolor=sys_col,edgecolor='k',lw=1.5,zorder=3,label='Leading foreshocks')
         if len(partial_rupture)>0 and len(partial_rupture[ipart]) > 0:
-            plt.scatter(xs[partial_rupture][ipart],evdep[partial_rupture][ipart],s=200,marker='d',facecolor='w',edgecolor='k',lw=1.5,zorder=2,label='Partial rupture events')
+            plt.scatter(xs[partial_rupture][ipart],evdep[partial_rupture][ipart],s=200,marker='d',facecolor=pr_col,edgecolor='k',lw=1.5,zorder=2,label='Partial rupture events')
     plt.legend(fontsize=20,framealpha=1,loc='lower right')
 
     plt.hlines(y=Hs[1],xmin=xl[0],xmax=xl[1],linestyles='--',color=acolor,lw=1.5)

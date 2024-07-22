@@ -16,7 +16,7 @@ sc = setup_shortcut.setups()
 # ---------------------- Set input parameters
 parser = argparse.ArgumentParser()
 parser.add_argument("model_n",type=str.lower,help=": Name of big group of the model")
-parser.add_argument("output_branch_n",type=str.lower,help=": Name of the branch where outputs reside")
+parser.add_argument("output_branch_n",type=str,help=": Name of the branch where outputs reside")
 parser.add_argument("target_sys_evID",type=int,help=": System-wide event index")
 parser.add_argument("--write_on",action="store_true",help=": Write lua, toml, and shell script?",default=False)
 parser.add_argument("--n_node",type=int,help=": Number of nodes for tandem simulation",default=40)
@@ -59,6 +59,9 @@ if 'sliplaw' in args.output_branch_n:
 elif 'lowres' in args.output_branch_n and 'aginglaw' in args.output_branch_n:
     args.n_node = 10
     hf = '125'
+elif 'hf10' in args.output_branch_n:
+    args.n_node = 80
+    hf = '10'
     
 # 1. Load event outputs
 from cumslip_compute import analyze_events
@@ -95,10 +98,12 @@ if args.write_on:
     fpar.write('mesh_file = "ridgecrest_hf%s.msh"\n'%(hf))
     fpar.write('mode = "QDGreen"\n')
     fpar.write('type = "poisson"\n')
-    if args.output_branch_n == 'reference':
+    if args.output_branch_n == 'reference' or 'hf10' in args.output_branch_n:
         fpar.write('lib = "matfric_Fourier_main_reference.lua"\n')
     elif 'lowres_spinup' in args.output_branch_n:
         fpar.write('lib = "matfric_Fourier_main_lowres_spinup_reference.lua"\n')
+    elif 'slowVpl' in args.output_branch_n:
+        fpar.write('lib = "matfric_Fourier_main_slowVpl_reference.lua"\n')
     elif 'reference' in args.output_branch_n:
         fpar.write('lib = "matfric_Fourier_main_%s.lua"\n'%(args.output_branch_n))
     else:

@@ -1,6 +1,6 @@
 #!/bin/bash
 model_n=perturb_stress
-branch_n=lowres_spinup_aginglaw_reference_hf25
+branch_n=lowres_spinup_sliplaw_reference_hf05
 tdhome=/home/jyun/Tandem
 setup_dir=$tdhome/$model_n
 rm -rf $setup_dir/*profile_$branch_n
@@ -28,11 +28,12 @@ tandem_latest_aging='/home/jyun/softwares/project-tandem/build-tsckp-aging/app/t
 # mpiexec -bind-to core -n 40 /home/jyun/softwares/project-tandem/build-tsckp-aging/app/tandem /home/jyun/Tandem/perturb_stress/parameters_tmp.toml --petsc -ts_checkpoint_storage_type none -options_file /home/jyun/Tandem/options/ridgecrest.cfg > /home/jyun/Tandem/perturb_stress/messages_domain_test_slowVpl.log &
 
 # --- Build mesh
-#mpiexec -bind-to core -n 80 $tandem_latest_slip $setup_dir/build_GF.toml --petsc -options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log &
+# mpiexec -bind-to core -n 80 $tandem_latest_slip $setup_dir/build_GF.toml --petsc -options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log &
 
 # --- With checkpointing every certain time steps, physical time & cpu time
 # mpiexec -bind-to core -n 10 $tandem_aging $setup_dir/parameters_reference_lowres.toml --petsc -ts_checkpoint_path checkpoint -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 3153600000 -ts_checkpoint_freq_cputime 60 -options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log &
-mpiexec -bind-to core -n 40 $tandem_aging $setup_dir/parameters_reference_lowres.toml --petsc -ts_checkpoint_path checkpoint -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 3153600000 -ts_checkpoint_freq_cputime 60 -options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log &
+# mpiexec -bind-to core -n 40 $tandem_aging $setup_dir/parameters_reference_lowres.toml --petsc -ts_checkpoint_path checkpoint -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 3153600000 -ts_checkpoint_freq_cputime 60 -options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log &
+mpiexec -bind-to core -n 80 $tandem_latest_slip $setup_dir/parameters_sliplaw_reference_lowres_hf05.toml --petsc -ts_checkpoint_storage_type unlimited -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 3153600000 -ts_checkpoint_freq_cputime 60 -options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log &
 # mpiexec -bind-to core -n 80 $tandem_latest_slip $setup_dir/parameters_sliplaw_reference_lowres.toml --petsc -ts_checkpoint_storage_type unlimited -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 3153600000 -ts_checkpoint_freq_cputime 60 -options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log &
 # mpiexec -bind-to core -n 80 $tandem_latest_slip $setup_dir/parameters_sliplaw_reference.toml --petsc -ts_checkpoint_storage_type unlimited -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 1000000000 -ts_checkpoint_freq_cputime 60 -options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log &
 # mpiexec -bind-to core -n 40 $tandem_aging $setup_dir/parameters_reference.toml --petsc -ts_checkpoint_path checkpoint -ts_checkpoint_freq_step 50 -ts_checkpoint_freq_physical_time 1000000000 -ts_checkpoint_freq_cputime 60 -options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log &

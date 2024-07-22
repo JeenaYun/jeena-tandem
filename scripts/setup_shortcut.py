@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Define general setups and often used values
-Last modification: 2024.04.09.
+Last modification: 2024.06.06.
 by Jeena Yun
 """
 
@@ -31,6 +31,10 @@ class setups:
             code = split_n[0][0]+split_n[-1][0]
         elif len(split_n) == 3: # e.g., 'vert_slow_X2' --> vsX2_
             code = split_n[0][0]+split_n[1][0]+split_n[-1]+'_'
+        elif len(split_n) == 4: # e.g., 'vert_slow_dyn_X2' --> vsdynX2_
+            code = split_n[0][0]+split_n[1][0]+split_n[2]+split_n[-1]+'_'
+        else:
+            raise TypeError('Very long model name \'%s\'- please check'%(model_n))
         return code
     
     def code2name(self,code):
@@ -46,7 +50,16 @@ class setups:
         if 'X' in code:
             model_n += '_X%d'%(int(code.split('X')[-1].split('_')[0]))
             strike = int(code.split('_')[-1])
-        else:
+        if 'dyn' in code:
+            model_n += '_dyn'
+            strike = int(code.split('_')[-1])
+        elif 'static' in code:
+            model_n += '_static'
+            strike = int(code.split('_')[-1])
+        elif 'flipstat' in code:
+            model_n += '_flipstat'
+            strike = int(code.split('_')[-1])
+        if not 'strike' in locals():
             strike = int(code[2:])
         return model_n,strike
 
@@ -64,14 +77,22 @@ class setups:
                     seissol_model_code = tails.split('_')[0] + '_' + tails.split('_')[1]
                     multiply = int(seissol_model_code.split('X')[-1].split('_')[0])
                 if 'h' in tails:
-                    if len(tails.split('h')[0].split('_')[-1]) <= 2:
+                    if len(tails.split('h')[0].split('_')[-1]) <= 2 and len(tails.split('h')[0].split('_')[-1]) > 0: # varying_time
                         time_diff_in_h = int(tails.split('h')[0].split('_')[-1])
-                    if len(tails.split('h')) > 2 or len(tails.split('h')[0].split('_')[-1]) > 2:
+                    if len(tails.split('h')) > 2 or len(tails.split('h')[0].split('_')[-1]) > 2: # diffwavelength
                         model_tag = tails.split('_')[-1].split('h')[0]+'h'
+                    elif 'hf' in tails: # hf10_reference
+                        model_tag = 'hf' + tails.split('hf')[-1]
                     if 'X' not in tails:
                         seissol_model_code = tails.split('h')[0].split('_')[0]
                 if 'X' not in tails and 'h' not in tails:
-                    seissol_model_code = tails.split('_')[0]
+                    if 'dyn' in tails or 'stat' in tails:
+                        if len(tails.split('_')) > 2:
+                            seissol_model_code = tails.split('_')[0]+'_'+tails.split('_')[1]
+                        else:
+                            seissol_model_code = tails
+                    else:
+                        seissol_model_code = tails.split('_')[0]
                     if tails.split(seissol_model_code+'_')[-1] != 'stress_dep':
                         model_tag = tails.split(seissol_model_code+'_')[-1]
             else:

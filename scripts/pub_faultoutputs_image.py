@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Functions related to plotting spatio-temporal evolution of variables as an image
+(Publication) Functions related to plotting spatio-temporal evolution of variables as an image
 By Jeena Yun
 Last modification: 2024.04.01.
 '''
@@ -22,27 +22,33 @@ mylightblue = (218/255,230/255,240/255)
 myygreen = (120/255,180/255,30/255)
 mylavender = (170/255,100/255,215/255)
 mydarkviolet = (145/255,80/255,180/255)
+mymint = (70/255,225/255,165/255)
+fs = 12
+# sys_col = mydarkviolet
+sys_col = mymint
+pr_col = 'w'
+size_star,size_diamond,scatter_lw =250,60,0.7
 
 
 # fields: Time [s] | state [s?] | cumslip0 [m] | traction0 [MPa] | slip-rate0 [m/s] | normal-stress [MPa]
 # Index:     0     |      1     |       2      |        3        |         4        |          5 
 
 def fout_image(lab,outputs,dep,params,cumslip_outputs,save_dir,prefix,
-               rths,vmin,vmax,Vths,zoom_frame,horz_size=20.6,vert_size=11,
-               plot_in_timestep=True,plot_in_sec=False,cb_off=False,publish=False,save_on=True):
-    processed_outputs = class_figtype(zoom_frame,outputs,cumslip_outputs,publish)[0]
+               rths,vmin,vmax,Vths,zoom_frame,
+               plot_in_timestep=True,plot_in_sec=False,cb_off=False,publish=False,no_scatter=False,save_on=True):
+    processed_outputs = class_figtype(zoom_frame,outputs,cumslip_outputs,publish,no_scatter)[0]
     X,Y,var = get_var(lab,processed_outputs,dep,plot_in_timestep,plot_in_sec)
     if vmin is None:
         vmin = np.min(var)
     if vmax is None:
         vmax = np.max(var)
-    ax = plot_image(X,Y,var,lab,outputs,cumslip_outputs,save_dir,prefix,params,zoom_frame,rths,vmin,vmax,Vths,horz_size,vert_size,plot_in_timestep,plot_in_sec,cb_off,publish,save_on)
-    return ax
+    cb = plot_image(X,Y,var,lab,outputs,cumslip_outputs,save_dir,prefix,params,zoom_frame,rths,vmin,vmax,Vths,plot_in_timestep,plot_in_sec,cb_off,publish,no_scatter,save_on)
+    return cb
 
 def get_var(lab,outputs,dep,plot_in_timestep,plot_in_sec):
     idx = {'state_var': 1, 'state': 2, 'shearT': 3, 'delshearT': 3, 'sliprate': 4, 'normalT': 5, 'delnormalT': 5} 
     var = np.array([outputs[i][:,idx[lab]] for i in np.argsort(abs(dep))])
-    if lab[-1] == 'T': var = abs(var)
+    if lab[-1] == 'T' or lab == 'sliprate': var = abs(var)
 
     if plot_in_timestep:
         print('Plot in time steps')
@@ -95,7 +101,7 @@ def gen_cmap(lab,params,vmin,vmax,Vths):
     cb_label = cb_dict[lab]
     return cmap_n,cb_label
 
-def class_figtype(zoom_frame,outputs,cumslip_outputs,publish,print_on=True):
+def class_figtype(zoom_frame,outputs,cumslip_outputs,publish,no_scatter,print_on=True):
     tstart,tend,evdep = cumslip_outputs[0][0],cumslip_outputs[0][1],cumslip_outputs[1][1]
     its_all = np.array([np.argmin(abs(outputs[0][:,0]-t)) for t in tstart])
     ite_all = np.array([np.argmin(abs(outputs[0][:,0]-t)) for t in tend])
@@ -160,11 +166,14 @@ def class_figtype(zoom_frame,outputs,cumslip_outputs,publish,print_on=True):
         tsmin,tsmax = [],[]
     if publish:
         ver_info_opt = False
+    if no_scatter:
+        scatter_opt = 999
+        txt_opt = 999
     fig_opts = [xl_opt,ver_info_opt,scatter_opt,vlines_opt,txt_opt,xlab_opt,name_opt]
     return processed_outputs,evdep,its_all,ite_all,tsmin,tsmax,its,ite,buffer1,buffer2,iev1,iev2,fig_opts
 
-def decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,plot_in_timestep,plot_in_sec,publish):
-    evdep,its_all,ite_all,tsmin,tsmax,its,ite,buffer1,buffer2,iev1,iev2,fig_opts = class_figtype(zoom_frame,outputs,cumslip_outputs,publish,print_on=False)[1:]
+def decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,plot_in_timestep,plot_in_sec,publish,no_scatter):
+    evdep,its_all,ite_all,tsmin,tsmax,its,ite,buffer1,buffer2,iev1,iev2,fig_opts = class_figtype(zoom_frame,outputs,cumslip_outputs,publish,no_scatter,print_on=False)[1:]
     system_wide,partial_rupture,event_cluster,lead_fs = analyze_events(cumslip_outputs,rths)[2:6]
     xl_opt,ver_info_opt,scatter_opt,vlines_opt,txt_opt,xlab_opt,name_opt = fig_opts
 
@@ -186,21 +195,22 @@ def decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,p
 
     if len(its_all) > 0:
         if plot_in_timestep:
-            if scatter_opt == 1:
+            if scatter_opt in [999,1]:
                 xs = its_all
             else:
                 xs = its_all - lim_s
         else:
             xs = time[its_all]
 
-    if scatter_opt == 1:
-        # if len(system_wide) > 0:
-        #     plt.scatter(xs[system_wide],evdep[system_wide],s=700,marker='*',facecolor=mydarkviolet,edgecolor='k',lw=1.5,zorder=3,label='System-size events')
-        # if len(lead_fs) > 0:
-        #     plt.scatter(xs[lead_fs],evdep[lead_fs],s=200,marker='d',facecolor=mydarkviolet,edgecolor='k',lw=1.5,zorder=3,label='Leading foreshocks')
-        # if len(partial_rupture) > 0:
-        #     plt.scatter(xs[partial_rupture],evdep[partial_rupture],s=200,marker='d',facecolor='w',edgecolor='k',lw=1.5,zorder=2,label='Partial rupture events')
-        print('scatter_opt == 1')
+    if scatter_opt == 999:
+        print('No scatter opttion')
+    elif scatter_opt == 1:
+        if len(system_wide) > 0:
+            plt.scatter(xs[system_wide],evdep[system_wide],s=size_star,marker='*',facecolor=sys_col,edgecolor='k',lw=scatter_lw,zorder=3,label='System-size events')
+        if len(lead_fs) > 0:
+            plt.scatter(xs[lead_fs],evdep[lead_fs],s=size_diamond,marker='d',facecolor=sys_col,edgecolor='k',lw=scatter_lw,zorder=3,label='Leading foreshocks')
+        if len(partial_rupture) > 0:
+            plt.scatter(xs[partial_rupture],evdep[partial_rupture],s=size_diamond,marker='d',facecolor=pr_col,edgecolor='k',lw=scatter_lw,zorder=2,label='Partial rupture events')
     else:
         isys = np.where(np.logical_and(its_all[system_wide]>=lim_s,its_all[system_wide]<=lim_e))[0]
         if len(lead_fs) > 0:
@@ -210,11 +220,11 @@ def decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,p
         else:
             ipart = []
         if len(system_wide[isys]) > 0:
-            plt.scatter(xs[system_wide][isys],evdep[system_wide][isys],s=700,marker='*',facecolor=mydarkviolet,edgecolor='k',lw=1.5,zorder=3,label='System-size events')
+            plt.scatter(xs[system_wide][isys],evdep[system_wide][isys],s=size_star,marker='*',facecolor=sys_col,edgecolor='k',lw=scatter_lw,zorder=3,label='System-size events')
         if len(lead_fs) > 0:
-            plt.scatter(xs[lead_fs][ilfs],evdep[lead_fs][ilfs],s=200,marker='d',facecolor=mydarkviolet,edgecolor='k',lw=1.5,zorder=3,label='Leading foreshocks')
+            plt.scatter(xs[lead_fs][ilfs],evdep[lead_fs][ilfs],s=size_diamond,marker='d',facecolor=sys_col,edgecolor='k',lw=scatter_lw,zorder=3,label='Leading foreshocks')
         if len(partial_rupture)>0 and len(partial_rupture[ipart]) > 0:
-            plt.scatter(xs[partial_rupture][ipart],evdep[partial_rupture][ipart],s=200,marker='d',facecolor='w',edgecolor='k',lw=1.5,zorder=2,label='Partial rupture events')
+            plt.scatter(xs[partial_rupture][ipart],evdep[partial_rupture][ipart],s=size_diamond,marker='d',facecolor=pr_col,edgecolor='k',lw=scatter_lw,zorder=2,label='Partial rupture events')
     # plt.legend(fontsize=20,framealpha=1,loc='lower right')
 
     plt.hlines(y=Hs[1],xmin=xl[0],xmax=xl[1],linestyles='--',color=acolor,lw=0.6)
@@ -230,18 +240,24 @@ def decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,p
             plt.vlines(x=xs[iev1:iev2+1],ymin=0,ymax=Hs[0],linestyles='--',color=acolor,lw=1.5)
 
     if len(its_all) > 0:
-        if txt_opt == 1:
+        if txt_opt == 0:
             for k in range(len(its_all)):
-                if its_all[k]>=lim_s and its_all[k]<=lim_e:
-                    plt.text(xs[k],evdep[k]-0.2,'%d'%(k),color=acolor,fontsize=20,ha='right',va='bottom')
+                plt.text(xs[k],evdep[k]-0.2,'%d'%(k),color=acolor,fontsize=fs,fontweight='bold',ha='right',va='bottom')
+        elif txt_opt == 1:
+            for k in range(len(its_all)):
+                if its_all[k]>=lim_s and its_all[k]<=lim_e and (k in system_wide or k in lead_fs):
+                    if len(its_all) < 10:
+                        plt.text(xs[k]-150,evdep[k]-0.2,'%d'%(k),color=acolor,fontsize=fs,fontweight='bold',ha='right',va='bottom')
+                    else:
+                        plt.text(xs[k]-650,evdep[k]-0.2,'%d'%(k),color=acolor,fontsize=fs,fontweight='bold',ha='right',va='bottom')
         elif txt_opt == 2:
-            plt.text(xs[iev1]+width/18,23,'Event %d'%(iev1),fontsize=30,fontweight='bold',color=acolor,ha='left',va='bottom') # coseismic
+            plt.text(xs[iev1]+width/18,23,'Event %d'%(iev1),fontsize=fs,fontweight='bold',color=acolor,ha='left',va='bottom') # coseismic
         elif txt_opt == 3:
-            plt.text(xs[iev1]-width/150,12,'Event %d'%(iev1),fontsize=30,fontweight='bold',color=acolor,ha='right',va='bottom',rotation=90)
+            plt.text(xs[iev1]-width/150,12,'Event %d'%(iev1),fontsize=fs,fontweight='bold',color=acolor,ha='right',va='bottom',rotation=90)
             if plot_in_timestep:
-                plt.text(ite-its+width/150,12,'Event %d'%(iev2),fontsize=30,fontweight='bold',color=acolor,ha='left',va='bottom',rotation=90)
+                plt.text(ite-its+width/150,12,'Event %d'%(iev2),fontsize=fs,fontweight='bold',color=acolor,ha='left',va='bottom',rotation=90)
             else:
-                plt.text(time[ite]+width/150,12,'Event %d'%(iev2),fontsize=30,fontweight='bold',color=acolor,ha='left',va='bottom',rotation=90)
+                plt.text(time[ite]+width/150,12,'Event %d'%(iev2),fontsize=fs,fontweight='bold',color=acolor,ha='left',va='bottom',rotation=90)
 
     if xl_opt == 1:
         plt.xlim(0,xl[1])
@@ -259,23 +275,23 @@ def decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,p
         
     plt.ylim(0,Hs[0])
     plt.gca().invert_yaxis()
-    plt.ylabel('Depth [km]',fontsize=13)
+    plt.ylabel('Depth [km]',fontsize=fs)
 
     if plot_in_timestep:
         if xlab_opt == 1: 
-            plt.xlabel('Timesteps',fontsize=13)
+            plt.xlabel('Timesteps',fontsize=fs)
         elif xlab_opt == 2:
             if tsmin > 1e-3:
                 xt = plt.gca().get_xticks()
                 xt_lab = ['%d'%(ticks+tsmin) for ticks in xt]
                 plt.gca().set_xticks(xt)
                 plt.gca().set_xticklabels(xt_lab)
-            plt.xlabel('Timesteps',fontsize=13)
+            plt.xlabel('Timesteps',fontsize=fs)
     elif plot_in_sec:        
-        plt.xlabel('Time Since Perturbation [s]',fontsize=13)
-        # plt.xlabel('Time [s]',fontsize=13)
+        plt.xlabel('Time Since Start of Perturbation [s]',fontsize=fs)
+        # plt.xlabel('Time [s]',fontsize=fs)
     else:        
-        plt.xlabel('Time [yrs]',fontsize=13)
+        plt.xlabel('Time [yrs]',fontsize=fs)
 
     if name_opt == 1:
         fig_name = '_image'
@@ -293,17 +309,13 @@ def decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,p
 
     return fig_name
 
-def plot_image(X,Y,var,lab,outputs,cumslip_outputs,save_dir,prefix,params,zoom_frame,rths,vmin,vmax,Vths,horz_size,vert_size,plot_in_timestep,plot_in_sec,cb_off,publish,save_on):
+def plot_image(X,Y,var,lab,outputs,cumslip_outputs,save_dir,prefix,params,zoom_frame,rths,vmin,vmax,Vths,plot_in_timestep,plot_in_sec,cb_off,publish,no_scatter,save_on):
     Hs = ch.load_parameter(prefix)[1]
-
-    # plt.rcParams['font.size'] = '27'
-    plt.rcParams['font.size'] = '11'
-    plt.rcParams['axes.linewidth'] = 0.5
-    fig,ax=plt.subplots(figsize=(horz_size,vert_size))
 
     cmap_n,cb_label = gen_cmap(lab,params,vmin,vmax,Vths)
     if lab == 'sliprate':
-        cb = plt.pcolormesh(X,Y,var,cmap=cmap_n,norm=mpl.colors.LogNorm(vmin,vmax),rasterized=True)
+        cb = plt.pcolormesh(X,Y,var,cmap=cmap_n,norm=mpl.colors.LogNorm(vmin,vmax),rasterized=False)
+        # cb = plt.pcolormesh(X,Y,var,cmap=cmap_n,norm=mpl.colors.LogNorm(vmin,vmax),rasterized=True)
         acolor = 'w'
     elif lab == 'shearT':
         # ---- Total stress
@@ -319,17 +331,17 @@ def plot_image(X,Y,var,lab,outputs,cumslip_outputs,save_dir,prefix,params,zoom_f
         cb = plt.pcolormesh(X,Y,var,cmap=cmap_n,vmin=vmin,vmax=vmax,rasterized=True)
         acolor = 'w'
     if not cb_off:
-        plt.colorbar(cb,extend='both',pad=0.015).set_label(cb_label,fontsize=13,rotation=270,labelpad=20) # vertical colorbar
-        # plt.colorbar(cb,extend='both').set_label(cb_label,fontsize=30,rotation=270,labelpad=30) # vertical colorbar
+        plt.colorbar(cb,extend='both',pad=0.015).set_label(cb_label,fontsize=fs,rotation=270,labelpad=20) # vertical colorbar
+        # plt.colorbar(cb,extend='both').set_label(cb_label,fontsize=fs,rotation=270,labelpad=30) # vertical colorbar
 
     if plot_in_sec:
         time = np.array(outputs[0,:,0])
     else:
         time = np.array(outputs[0,:,0])/ch.yr2sec
     ver_info = ch.version_info(prefix)
-    fig_name = decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,plot_in_timestep,plot_in_sec,publish)
+    fig_name = decoration(time,zoom_frame,outputs,cumslip_outputs,ver_info,Hs,acolor,rths,plot_in_timestep,plot_in_sec,publish,no_scatter)
 
-    plt.tight_layout()
+    # plt.tight_layout()
     if save_on:
         if plot_in_timestep:
             if publish:
@@ -341,8 +353,8 @@ def plot_image(X,Y,var,lab,outputs,cumslip_outputs,save_dir,prefix,params,zoom_f
                 plt.savefig('%s/publish_%s%s.png'%(save_dir,lab,fig_name),dpi=300)
             else:
                 plt.savefig('%s/%s%s.png'%(save_dir,lab,fig_name),dpi=300)
-    return ax
-
+    return cb
+    
 def get_continuous_cmap(col_list,input_hex=False,float_list=None):
     ''' creates and returns a color map that can be used in heat map figures.
         If float_list is not provided, colour map graduates linearly between each color in col_list.

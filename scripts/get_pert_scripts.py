@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 '''
 Automatically write scripts for stress perturbation
-Example usage: python get_pert_scripts.py perturb_stress reference 31 vert_fast 330 --streess_dep_law --write_on
+Example usage: python get_pert_scripts.py perturb_stress reference 31 vert_fast 330 --stress_dep_law --write_on
 By Jeena Yun
-Last modification: 2024.04.08.
+Last modification: 2024.06.04.
 '''
 
 import numpy as np
@@ -17,7 +17,7 @@ sc = setup_shortcut.setups()
 # ---------------------- Set input parameters
 parser = argparse.ArgumentParser()
 parser.add_argument("model_n",type=str.lower,help=": Name of big group of the model")
-parser.add_argument("output_branch_n",type=str.lower,help=": Name of the branch where outputs reside")
+parser.add_argument("output_branch_n",type=str,help=": Name of the branch where outputs reside")
 parser.add_argument("target_sys_evID",type=int,help=": System-wide event index")
 parser.add_argument("seissol_model_n",type=str.lower,help=": Name of the SeisSol model")
 parser.add_argument("strike",type=int,help=": Strike of the SeisSol model")
@@ -29,11 +29,12 @@ parser.add_argument("--ckp_freq_step",type=int,help=": If given, step interval f
 parser.add_argument("--ckp_freq_ptime",type=float,help=": If given, physical time interval for checkpointing",default=10000000000)
 parser.add_argument("--ckp_freq_cputime",type=float,help=": If given, CPU time interval for checkpointing",default=60)
 parser.add_argument("--dstep",type=int,help=": If given, number of steps to run for the after perturbation model",default=50000)
-parser.add_argument("--add_fintime",type=int,help=": If given, additional hours after the unperturbed event start time",default=4)
+parser.add_argument("--add_fintime",type=int,help=": If given, additional hours after the unperturbed event start time")
+parser.add_argument("--sub_fintime",type=int,help=": If given, subtract hours before the unperturbed event start time")
 parser.add_argument("--multiply",type=int,help=": If given, the integer is multiplied to the given perturbation model",default=1)
 parser.add_argument("--no_pert_period",action="store_true",help=": If given, do not write perturbation period",default=False)
 parser.add_argument("--no_after_pert_period",action="store_true",help=": If given, do not write after perturbation period",default=False)
-parser.add_argument("--streess_dep_law",action="store_true",help=": If given, use stress dependent law",default=False)
+parser.add_argument("--stress_dep_law",action="store_true",help=": If given, use stress dependent law",default=False)
 args = parser.parse_args()
 
 fcoeff = 0.4 # Perturbation related parameters
@@ -52,6 +53,9 @@ if args.multiply != 1:
         np.savetxt("/home/jyun/Tandem/%s/seissol_outputs/ssaf_%s_dep_stress_pert_mu%02d_%d.dat"%(args.model_n,seissol_model_n,int(fcoeff*10),args.strike),X=depth_range,fmt='%.20f',newline='\n')
 else:
     seissol_model_n = args.seissol_model_n
+
+if not args.sub_fintime and not args.add_fintime:
+    args.add_fintime = 4
 
 # -------- Adjust inputs 
 # Set path and file names
@@ -73,7 +77,7 @@ run_branch_n = 'pert%d_%s%d%s'%(args.target_sys_evID,sc.model_code(seissol_model
 #     matched_save_dir = '/export/dump/jyun/%s/match%d_%dh'%(args.model_n,args.target_sys_evID,args.time_diff_in_sec/3600)
 #     matched_ckp = 'match%d_%dh/outputs/checkpoint'%(args.target_sys_evID,args.time_diff_in_sec/3600)
 #     run_branch_n = 'pert%d_%s%d_%dh'%(args.target_sys_evID,sc.model_code(seissol_model_n),args.strike,args.time_diff_in_sec/3600)
-if args.streess_dep_law:
+if args.stress_dep_law:
     run_branch_n += '_stress_dep'
 
 fname_lua = '/home/jyun/Tandem/%s/scenario_perturb.lua'%(args.model_n)
@@ -91,6 +95,9 @@ if 'sliplaw' in args.output_branch_n:
 elif 'lowres' in args.output_branch_n and 'aginglaw' in args.output_branch_n:
     args.n_node = 10
     hf = '125'
+elif 'hf10' in args.output_branch_n:
+    args.n_node = 80
+    hf = '10'
     
 print('====================== Summary of Input Parameters =======================')
 print('output_save_dir = %s'%(output_save_dir))
@@ -105,7 +112,10 @@ print('ckp_freq_step = %d'%(args.ckp_freq_step))
 print('ckp_freq_ptime = %d'%(args.ckp_freq_ptime))
 print('ckp_freq_cputime = %d'%(args.ckp_freq_cputime))
 # print('dstep = %d'%(args.dstep))
-print('fin_time = unperturb_tstart + %d'%(args.add_fintime))
+if args.add_fintime:
+    print('fin_time = unperturb_tstart + %d'%(args.add_fintime))
+elif args.sub_fintime:
+    print('fin_time = unperturb_tstart - %d'%(args.sub_fintime))
 if args.no_pert_period:
     print('*** Not writing perturbation period ***')
 if args.no_after_pert_period:
@@ -121,7 +131,7 @@ if not os.path.exists(matched_save_dir):
         if args.time_diff_in_sec == 58320:
             subprocess.run(["python","/home/jyun/Tandem/make_closer.py",args.model_n,args.output_branch_n,"%d"%(args.target_sys_evID),"--write_on"])
         else:
-            subprocess.run(["python","/home/jyun/Tandem/make_closer.py",args.model_n,args.output_branch_n,"%d"%(args.target_sys_evID),"--write_on","--time_diff_in_sec",args.time_diff_in_sec])
+            subprocess.run(["python","/home/jyun/Tandem/make_closer.py",args.model_n,args.output_branch_n,"%d"%(args.target_sys_evID),"--write_on","--time_diff_in_sec","%g"%(args.time_diff_in_sec)])
         print('\nXXX Done writing make_closer.py -> run it first! XXX')
     else:
         if args.time_diff_in_sec == 58320:
@@ -165,7 +175,7 @@ if args.write_on:
     if 'lowres' in args.output_branch_n: lowres = 5
     if 'slowVpl' in args.output_branch_n: Vp = 3.2e-11
 
-    if args.streess_dep_law:
+    if args.stress_dep_law:
         scenario_name += '_stress_dep'
     if args.output_branch_n != 'reference':
         scenario_name += '_%s'%(args.output_branch_n)
@@ -179,8 +189,12 @@ if args.write_on:
     flua.write('package.path = package.path .. ";/home/jyun/Tandem"\n')
     flua.write('local ridgecrest54 = require "matfric_Fourier_main_perturb"\n')
     flua.write('local ridgecrest54_stress_dep = require "matfric_Fourier_main_perturb_stress_dep"\n')
-    flua.write('local ridgecrest54_spinup = require "matfric_Fourier_main_perturb_spinup"\n\n')
-    if args.streess_dep_law:
+    flua.write('local ridgecrest54_spinup = require "matfric_Fourier_main_perturb_spinup"\n')
+    flua.write('local ridgecrest54_spinup_stress_dep = require "matfric_Fourier_main_perturb_spinup_stress_dep"\n\n')
+    if args.stress_dep_law and 'spinup' in args.output_branch_n:
+        flua.write('%s = ridgecrest54_spinup_stress_dep.new{model_n=\'%s\',strike=%d,fcoeff=%1.1f,dt=%1.2f,init_time=%1.18e,fsn=%d,fab=%d,fdc=%d,lowres=%d,Vp=%g}'\
+                    %(scenario_name,seissol_model_n,args.strike,fcoeff,args.dt,init_time,fsn,fab,fdc,lowres,Vp))
+    elif args.stress_dep_law:
         flua.write('%s = ridgecrest54_stress_dep.new{model_n=\'%s\',strike=%d,fcoeff=%1.1f,dt=%1.2f,init_time=%1.18e,fsn=%d,fab=%d,fdc=%d,lowres=%d,Vp=%g}'\
                     %(scenario_name,seissol_model_n,args.strike,fcoeff,args.dt,init_time,fsn,fab,fdc,lowres,Vp))
     elif 'spinup' in args.output_branch_n:
@@ -194,7 +208,10 @@ if args.write_on:
     # -------- 5. Generate parameter file
     print('XXX Writing file %s XXX'%(fname_toml))
     fpar = open(fname_toml,'w')
-    fpar.write('final_time = 157680000000\n')
+    if 'slowVpl' in args.output_branch_n: 
+        fpar.write('final_time = 3153600000000\n')
+    else:
+        fpar.write('final_time = 157680000000\n')
     fpar.write('mesh_file = "ridgecrest_hf%s.msh"\n'%(hf))
     fpar.write('mode = "QDGreen"\n')
     fpar.write('type = "poisson"\n')
@@ -258,7 +275,7 @@ if args.write_on:
         if args.multiply == 30:
             # -- Below lines are for X30 model that nucleates immediately
             fshell.write('mpiexec -bind-to core -n %d %s $setup_dir/%s --petsc -ts_checkpoint_load ../%s/step%d '
-                        '-ts_adapt_dt_max %.2f -ts_max_steps %d %s '
+                        '-ts_adapt_type basic -ts_adapt_dt_max %.2f -ts_max_steps %d %s '
                         '-ts_checkpoint_freq_step 1 -ts_checkpoint_freq_physical_time %d -ts_checkpoint_freq_cputime %d '
                         '-options_file $tdhome/options/ridgecrest.cfg > $setup_dir/messages_$branch_n.log\n\n'\
                         %(args.n_node,execution,fname_toml.split('/')[-1],matched_ckp,stepnum,args.dt,maxstep,ckp_options,args.ckp_freq_ptime,args.ckp_freq_cputime))
@@ -275,7 +292,10 @@ if args.write_on:
         fshell.write('read_time_full $model_n $branch_n\n\n')
     
     if not args.no_after_pert_period:
-        fin_time = tstart[idx] + args.add_fintime*3600
+        if args.add_fintime:
+            fin_time = tstart[idx] + args.add_fintime*3600
+        elif args.sub_fintime:
+            fin_time = tstart[idx] - args.sub_fintime*3600
         print('Final time: %g s'%(fin_time))
         # 6.3. Run the after perturbation period
         fshell.write('# Run the after perturbation period\n')

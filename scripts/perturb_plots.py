@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+"""
+Plotting tools for comparing perturbed cycle models
+Last modification: 2024.04.22.
+by Jeena Yun
+"""
 import numpy as np
 import matplotlib.pylab as plt
 import myplots
@@ -5,44 +11,50 @@ import pandas as pd
 mp = myplots.Figpref()
 plt.rcParams['font.size'] = '15'
 
-def pub_triggering_response(ax,ref,pert,after_pert,lag,noline,after_tstart):
+def pub_triggering_response(ax,ref,pert,after_pert,lag,noline,after_tstart,notice_fs=20,txt_fs=13,axis_lab_fs=17,legend_fs=15):
     ref_outputs = np.copy(ref.outputs)
     after_pert_outputs = np.copy(after_pert.outputs)
     ref_outputs[:,:,0] = ref_outputs[:,:,0] - ref.tstart[ref.idx]
     after_pert_outputs[:,:,0] = after_pert_outputs[:,:,0] - ref.tstart[ref.idx]
     tvar = 'sliprate'
-    inc1,inc2 = 1e3,5e4
     if lag > 0:
         time_tag = "advance"
         xlmin,xlmax = -10*3600, 5*3600
     else:
         time_tag = "delay"
-        xlmin,xlmax = -5*3600, 10*3600
+        if abs(lag) < 3600:
+            xlmin,xlmax = -1000, 2000
+        else:
+            xlmin,xlmax = -5*3600, 10*3600
     i1 = np.where(np.logical_and(ref_outputs[0,:,0] >= xlmin, ref_outputs[0,:,0] <= xlmax))[0]
     _,max_ref = fout_time_max(ax,ref_outputs[:,i1,:],tvar,lab='Unperturbed',plot_in_sec=True,col='k')
     _,max_after_pert = fout_time_max(ax,after_pert_outputs[:,1:,:],tvar,lab='Perturbed',plot_in_sec=True,col=mp.myblue)
     xl = [xlmin,xlmax]
     yl = ax.get_ylim()
     ax.vlines(x=0,ymin=yl[0]*2,ymax=yl[1]*2,lw=2.5,colors='0.62',linestyles='--',zorder=0)
-    ax.text((xl[1]-xl[0])*0.01,-yl[1]*2.5,'Unperturbed event time',fontsize=13,color='0.62',fontweight='bold')
-    ax.vlines(x=(after_tstart-ref.tstart[ref.idx]),ymin=yl[0]*2,ymax=yl[1]*2,lw=2.5,colors=mp.mynavy,linestyles='--',zorder=0)
-    ax.text((after_tstart-ref.tstart[ref.idx])+(xl[1]-xl[0])*0.01,-yl[1]*2.5,'Perturbed event time',fontsize=13,color=mp.mynavy,fontweight='bold')
+    ax.text((xl[1]-xl[0])*0.01,-yl[1]*2.5,'Unperturbed event time',fontsize=txt_fs,color='0.62',fontweight='bold')
+    if not noline :
+        ax.vlines(x=(after_tstart-ref.tstart[ref.idx]),ymin=yl[0]*2,ymax=yl[1]*2,lw=2.5,colors=mp.mynavy,linestyles='--',zorder=0)
+        ax.text((after_tstart-ref.tstart[ref.idx])+(xl[1]-xl[0])*0.01,-yl[1]*2.5,'Perturbed event time',fontsize=txt_fs,color=mp.mynavy,fontweight='bold')
     if abs(lag) < 3600:
-        ax.text(xl[1]-(xl[1]-xl[0])*0.025,yl[1]*0.75,'Time %s of %g s'%(time_tag,abs(lag)),fontsize=20,color='k',fontweight='bold',ha='right',va='top')
-        ax.set_xlabel('Time relative to the unperturbed event [s]',fontsize=17)
+        ax.text(xl[1]-(xl[1]-xl[0])*0.025,yl[1]*0.75,'Time %s of %1.1f s'%(time_tag,abs(lag)),fontsize=notice_fs,color='k',fontweight='bold',ha='right',va='top')
+        ax.set_xlabel('Time relative to the unperturbed event [s]',fontsize=axis_lab_fs)
     else:
-        ax.text(xl[1]-(xl[1]-xl[0])*0.025,yl[1]*0.75,'Time %s of %1.1f hr'%(time_tag,abs(lag)/3600),fontsize=20,color='k',fontweight='bold',ha='right',va='top')
+        if not noline:
+            ax.text(xl[1]-(xl[1]-xl[0])*0.025,yl[1]*0.75,'Time %s of %1.1f hr'%(time_tag,abs(lag)/3600),fontsize=notice_fs,color='k',fontweight='bold',ha='right',va='top')
+        else:
+            ax.text(xl[1]-(xl[1]-xl[0])*0.025,yl[1]*0.75,'No event detected',fontsize=notice_fs,color='k',fontweight='bold',ha='right',va='top')
         xt = np.linspace(xlmin,xlmax,8)
         xtl = ['%d'%(ixt/3600) for ixt in xt]
         ax.set_xticks(ticks=xt,labels=xtl)
-        ax.set_xlabel('Time relative to the unperturbed event time [hr]',fontsize=17)
-    ax.set_ylabel('log$_{10}$(Peak Slip Rate [m/s])',fontsize=17)
+        ax.set_xlabel('Time relative to the unperturbed event time [hr]',fontsize=axis_lab_fs)
+    ax.set_ylabel('log$_{10}$(Peak Slip Rate [m/s])',fontsize=axis_lab_fs)
     ax.set_xlim(xl)
     minsr = min([min(max_ref),min(max_after_pert)])
     maxsr = max([max(max_ref),max(max_after_pert)])
     ax.set_ylim(minsr-(yl[1]-maxsr),yl[1])
     # ax.set_ylim(-yl[1]*6.5,yl[1])
-    ax.legend(fontsize=15,loc='upper left')
+    ax.legend(fontsize=legend_fs,loc='upper left')
     ax.grid(True,alpha=0.5)
     return ax
 
@@ -67,22 +79,26 @@ def triggering_response(ax,ref,pert,after_pert,lag,noline=False):
     ax.legend(fontsize=15,loc='upper left')
     return ax
 
-def fout_time(ax,outputs,dep,target_depth,target_var,plot_in_sec,ls='-',col='k',lab='',abs_on=False,t0=0):
+def fout_time(ax,outputs,dep,target_depth,target_var,plot_in_sec,ls='-',col='k',lab='',abs_on=False,t0=0,lw=2.5,fs=17,tit_fs=20,tit=None):
     time,var,xlab,ylab,fign,indx = get_var(outputs,dep,target_depth,target_var,plot_in_sec,abs_on)
-    ax.plot(time-t0,var,color=col, lw=2.5,label=lab,linestyle=ls)
-    ax.set_xlabel(xlab,fontsize=17)
-    ax.set_ylabel(ylab,fontsize=17)
-    if target_depth < 1e-1:
-        ax.set_title('Depth = surface',fontsize=20,fontweight = 'bold')
+    ax.plot(time-t0,var,color=col,lw=lw,label=lab,linestyle=ls)
+    ax.set_xlabel(xlab,fontsize=fs)
+    ax.set_ylabel(ylab,fontsize=fs)
+    if tit is None:
+        if target_depth < 1e-1:
+            ax.set_title('Depth = surface',fontsize=tit_fs,fontweight = 'bold')
+        else:
+            ax.set_title('Depth = %1.2f [km]'%abs(dep[indx]),fontsize=tit_fs,fontweight = 'bold')
     else:
-        ax.set_title('Depth = %1.2f [km]'%abs(dep[indx]),fontsize=20,fontweight = 'bold')
+        ax.set_title(tit,fontsize=tit_fs,fontweight = 'bold')
+    return ax
 
-def fout_time_max(ax,outputs,target_var,plot_in_sec,toff=0,ls='-',col='k',lab='',abs_on=False):
+def fout_time_max(ax,outputs,target_var,plot_in_sec,toff=0,ls='-',col='k',lab='',abs_on=False,lw=2.5,fs=17):
     time,var,xlab,ylab,fign,_ = get_var(outputs,None,None,target_var,plot_in_sec,abs_on)
     if abs(toff) > 0: time += toff
-    ax.plot(time,var,color=col, lw=2.5,label=lab,linestyle=ls)
-    ax.set_xlabel(xlab,fontsize=17)
-    ax.set_ylabel(ylab,fontsize=17)
+    ax.plot(time,var,color=col, lw=lw,label=lab,linestyle=ls)
+    ax.set_xlabel(xlab,fontsize=fs)
+    ax.set_ylabel(ylab,fontsize=fs)
     return ax,var
 # def fout_time_max(ax,outputs,target_var,plot_in_sec,toff=0,ls='-',col='k',lab='',abs_on=False):
 #     time,var,xlab,ylab,fign,_ = get_var(outputs,None,None,target_var,plot_in_sec,abs_on)

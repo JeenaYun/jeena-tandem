@@ -114,6 +114,16 @@ class Figpref:
         else:
             ax.set_xlabel(xtick_on,fontsize=17)
         return yl, xl
+    def my_polar_cmap(self,vmin,vmax):
+        import matplotlib as mpl
+        import cmcrameri.cm as cram
+        cm = cram.vik
+        col_list = [cm(i) for i in np.linspace(0,1,6)]
+        col_list.insert(3,mpl.colors.to_rgb('w'))
+        float_list = [mpl.colors.Normalize(vmin,vmax)(i) for i in np.linspace(vmin,0,4)]
+        [float_list.append(mpl.colors.Normalize(vmin,vmax)(k)) for k in np.linspace(0,vmax,4)[1:]]
+        cmap_n = self.get_continuous_cmap(col_list,input_hex=False,float_list=float_list)
+        return cmap_n
 
     def get_continuous_cmap(self,col_list,input_hex=False,float_list=None):
         ''' creates and returns a color map that can be used in heat map figures.

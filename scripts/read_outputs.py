@@ -41,7 +41,7 @@ def extract_from_lua(save_dir,save_on=True):
             fname = prefix.split('/')[0] + '/' + 'bp1.lua'
     elif 'perturb_stress' in prefix:
         if 'slowVpl' in prefix:
-            fname = prefix.split('/')[0] + '/' + fname + '_reference_slowVpl.lua'
+            fname = prefix.split('/')[0] + '/' + fname + '_slowVpl_reference.lua'
         elif 'reference' in prefix:
             fname = prefix.split('/')[0] + '/' + fname + '_reference.lua'
         else:
@@ -97,6 +97,11 @@ def extract_from_lua(save_dir,save_on=True):
         #     else:
         #         params[var[0]] = float(var[1])
     fid.close()
+    if 'Vp' not in params:
+        if 'slowVpl' in save_dir:
+            params['Vp'] = 3.2e-11
+        else:
+            params['Vp'] = 1e-9
     if save_on:
         print('Save data...',end=' ')
         np.save('%s/const_params'%(save_dir),params)
@@ -126,6 +131,9 @@ def read_fault_probe_outputs(save_dir,save_on=True):
     print('Done! (%2.4f s)'%(time.time()-ti))
     outputs = np.array(outputs)
     dep = np.array(dep)
+    ii = np.argsort(abs(dep))
+    outputs = outputs[ii]
+    dep = dep[ii]
 
     # --- Extract input constants
     params = extract_from_lua(save_dir)
