@@ -604,6 +604,85 @@ void SeasQDDiscreteGreenOperator::get_discrete_greens_function(
     // Assemble as many GFs as possible in the range [current_gf, n_gf)
     partial_assemble_discrete_greens_function(mesh, n_gfloaded, n_gf);
 
+    /* NEW LINES START */
+    {
+        // LOAD EXISTING GF AND COMPARE WITH WHAT IS IN G_
+        // PetscBool gf_hack = PETSC_FALSE;
+        // CHKERRTHROW(PetscOptionsGetBool(NULL, NULL, "-gf_check_hack", &gf_hack, NULL));
+        
+        PetscBool found = PETSC_FALSE;
+        char load_path_prefix[PETSC_MAX_PATH_LEN];
+        CHKERRTHROW(PetscOptionsGetString(NULL, NULL, "-saved_gf_path", load_path_prefix, PETSC_MAX_PATH_LEN-1, &found));
+        // if (gf_hack) {
+        if (found) {
+            PetscViewer v;
+            Mat Gfromfile;
+            GreensFunctionIndices ind(*this);
+            PetscInt M, N, commsize_checkpoint, current_gf;
+            char gf_fname[PETSC_MAX_PATH_LEN];
+            CHKERRTHROW(PetscSNPrintf(gf_fname, PETSC_MAX_PATH_LEN-1, "%s/gf_mat.bin", load_path_prefix));
+
+            CHKERRTHROW(MatCreateDense(PetscObjectComm((PetscObject)G_), ind.m, ind.n, PETSC_DECIDE, PETSC_DECIDE, nullptr, &Gfromfile));
+            CHKERRTHROW(MatSetBlockSizes(Gfromfile, ind.m_bs, ind.n_bs));
+            CHKERRTHROW(MatGetSize(Gfromfile, &M, &N));
+
+            // CHKERRTHROW(PetscViewerBinaryOpen(PetscObjectComm((PetscObject)G_),"/home/jyun/softwares/project-tandem/build-gf-debug-2d-p6/setups/gf/gf_mat.bin", FILE_MODE_READ, &v));
+            CHKERRTHROW(PetscViewerBinaryOpen(PetscObjectComm((PetscObject)G_), gf_fname, FILE_MODE_READ, &v));
+            CHKERRTHROW(PetscViewerBinarySetUseMPIIO(v, PETSC_TRUE));
+            CHKERRTHROW(PetscViewerBinaryRead(v, &commsize_checkpoint, 1, NULL, PETSC_INT));
+            CHKERRTHROW(PetscViewerBinaryRead(v, &current_gf, 1, NULL, PETSC_INT));
+            CHKERRTHROW(MatLoad(Gfromfile, v));
+            CHKERRTHROW(PetscViewerDestroy(&v));
+
+            // DIFF HERE
+            CHKERRTHROW(MatAXPY(Gfromfile, -1.0, G_, SAME_NONZERO_PATTERN));
+            {
+                PetscScalar *array;
+                PetscScalar amax=-1.0,amin=1.0e32;
+                MatDenseGetArray(Gfromfile,&array);
+                MatGetLocalSize(Gfromfile,&M,&N);
+                for (PetscInt ii=0; ii<M*N; ii++) {
+                    array[ii] = PetscAbsScalar(array[ii]);
+                    if (array[ii] > amax) { amax = array[ii]; }
+                    if (array[ii] < amin) { amin = array[ii]; }
+                }
+                MatDenseRestoreArray(Gfromfile,&array);
+                MPI_Allreduce(MPI_IN_PLACE, &amax, 1, MPIU_SCALAR, MPIU_MAX, PetscObjectComm((PetscObject)G_));
+                MPI_Allreduce(MPI_IN_PLACE, &amin, 1, MPIU_SCALAR, MPIU_MIN, PetscObjectComm((PetscObject)G_));
+
+
+                PetscPrintf(PetscObjectComm((PetscObject)G_),"[G - G_file]_max %1.15e\n",amax);
+                PetscPrintf(PetscObjectComm((PetscObject)G_),"[G - G_file]_min %1.15e\n",amin);
+            }
+
+            CHKERRTHROW(MatDestroy(&Gfromfile));
+        }
+
+    }
+
+#if 0
+    {
+        PetscViewer v;
+        MPI_Comm comm;
+
+        comm = PetscObjectComm((PetscObject)G_);
+        CHKERRTHROW(PetscViewerBinaryOpen(comm, "gf1.mat", FILE_MODE_WRITE, &v));
+        CHKERRTHROW(PetscViewerBinarySetUseMPIIO(v, PETSC_TRUE));
+        {
+            PetscMPIInt commsize;
+
+            MPI_Comm_size(comm,&commsize);
+            PetscInt commsize_checkpoint = (PetscInt)commsize;
+            CHKERRTHROW(PetscViewerBinaryWrite(v, &commsize_checkpoint, 1, PETSC_INT));
+        }
+        PetscInt current_gf = 67;
+        CHKERRTHROW(PetscViewerBinaryWrite(v, &current_gf, 1, PETSC_INT));
+        CHKERRTHROW(MatView(G_, v));
+        CHKERRTHROW(PetscViewerDestroy(&v));
+    }
+#endif
+    /* NEW LINES END */
+
     if (checkpoint_enabled_) {
         // Write out the operator whenever the fully assembled operator was not loaded from file
         if (n_gfloaded != n_gf) {

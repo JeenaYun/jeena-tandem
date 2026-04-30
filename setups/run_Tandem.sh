@@ -1,0 +1,1 @@
+mpiexec -bind-to core -n 15 /home/jyun/softwares/project-tandem/build-gf-debug-2d-p6/app/tandem parameters.toml --petsc -options_file gftest.cfg  | grep "G_file"

@@ -1,0 +1,32 @@
+compare gf/gf_mat.bin and gf1.mat
+
+
+Max. difference changes every iteration.
+Binary file should stay as it is, so it is each solve that is slightly varying
+This could be related to the machine-precision-level perturbations
+    e.g., imaging dot product for three ranks: reducing the dot products from each rank, d0,d1,d2
+        Unfortuntately (d0 + d1) + d2 is different from (d1 + d2) + d0 
+This may explain the variation in each run in QD, and cannot be helped
+
+Compare multiple ranks vs. serial
+Do several tests in 2D and 3D
+
+---------------
+[Test 1]
+- 2D, P3, side push loading, allVS setup
+- GF size: 672 x 336
+- 
+* Rank 15
+    [G - G_file]_max 4.706635081674904e-11
+    [G - G_file]_max 1.169553343061125e-11
+    [G - G_file]_max 1.443822839064524e-11
+    [G - G_file]_max 1.250555214937776e-11
+    [G - G_file]_max 1.136868377216160e-11
+    [G - G_file]_min is always 0.000000000000000e+00
+* serial
+    [G - G_file]_max 0.000000000000000e+00
+    [G - G_file]_min 0.000000000000000e+00
+    [G - G_file]_max 0.000000000000000e+00
+    [G - G_file]_min 0.000000000000000e+00
+    [G - G_file]_max 0.000000000000000e+00
+    [G - G_file]_min 0.000000000000000e+00

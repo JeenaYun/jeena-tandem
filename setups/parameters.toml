@@ -1,0 +1,14 @@
+final_time = 630720000000 # 20000 yrs
+mesh_file = "side_push_shift_o4_allVS.msh"
+mode = "QDGreen"
+lib = "matfric.lua"
+scenario = "BP3_uniform"
+type = "elasticity"
+ref_normal = [1, 0]
+boundary_linear = true
+
+# [gf_checkpoint]
+# prefix = "./gf_serial"
+
+[ts_checkpoint]
+storage_type = "none"
