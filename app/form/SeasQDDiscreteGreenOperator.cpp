@@ -618,7 +618,7 @@ void SeasQDDiscreteGreenOperator::get_discrete_greens_function(
             PetscViewer v;
             Mat Gfromfile;
             GreensFunctionIndices ind(*this);
-            PetscInt M, N, commsize_checkpoint, current_gf;
+            PetscInt M, N, commsize_checkpoint, current_gf, start_row, start_col;
             char gf_fname[PETSC_MAX_PATH_LEN];
             CHKERRTHROW(PetscSNPrintf(gf_fname, PETSC_MAX_PATH_LEN-1, "%s/gf_mat.bin", load_path_prefix));
 
@@ -639,8 +639,8 @@ void SeasQDDiscreteGreenOperator::get_discrete_greens_function(
             {
                 PetscScalar *array;
                 PetscScalar amax=-1.0,amin=1.0e32;
-                MatDenseGetArray(Gfromfile,&array);
                 MatGetLocalSize(Gfromfile,&M,&N);
+                MatDenseGetArray(Gfromfile,&array);
                 for (PetscInt ii=0; ii<M*N; ii++) {
                     array[ii] = PetscAbsScalar(array[ii]);
                     if (array[ii] > amax) { amax = array[ii]; }
@@ -649,10 +649,23 @@ void SeasQDDiscreteGreenOperator::get_discrete_greens_function(
                 MatDenseRestoreArray(Gfromfile,&array);
                 MPI_Allreduce(MPI_IN_PLACE, &amax, 1, MPIU_SCALAR, MPIU_MAX, PetscObjectComm((PetscObject)G_));
                 MPI_Allreduce(MPI_IN_PLACE, &amin, 1, MPIU_SCALAR, MPIU_MIN, PetscObjectComm((PetscObject)G_));
-
-
+                
                 PetscPrintf(PetscObjectComm((PetscObject)G_),"[G - G_file]_max %1.15e\n",amax);
                 PetscPrintf(PetscObjectComm((PetscObject)G_),"[G - G_file]_min %1.15e\n",amin);
+
+                MatGetOwnershipRange(Gfromfile,&start_row,NULL);
+                MatGetOwnershipRangeColumn(Gfromfile,&start_col,NULL);
+                MatDenseGetArray(Gfromfile,&array);
+                for (PetscInt ii=0; ii<M; ii++) {
+                    for (PetscInt jj=0; jj<N; jj++) {
+                        PetscScalar val = array[ii + jj * M];
+                        if (val > 1.0e-6) {
+                            PetscSynchronizedPrintf(PetscObjectComm((PetscObject)G_), "DIFF row %ld, %ld | col %ld, %ld | diff %1.14e\n",start_row+ii, ii, start_col+jj, jj, val);
+                        }
+                   }
+                }
+                PetscSynchronizedFlush(PetscObjectComm((PetscObject)G_), PETSC_STDOUT);
+                MatDenseRestoreArray(Gfromfile,&array);
             }
 
             CHKERRTHROW(MatDestroy(&Gfromfile));
