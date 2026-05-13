@@ -223,3 +223,17 @@ add_executable(tandem
     tandem.cpp)
 target_link_libraries(tandem PRIVATE app-common)
 target_include_directories(tandem PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+
+## GF debug tools
+
+add_executable(gf-debug
+    tandem/SeasConfig.cpp
+    gf-debug.cpp)
+target_link_libraries(gf-debug PRIVATE app-common)
+target_include_directories(gf-debug PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+
+add_executable(gf-debug-fixed
+    tandem/SeasConfig.cpp
+    gf-debug-fixed.cpp)
+target_link_libraries(gf-debug-fixed PRIVATE app-common)
+target_include_directories(gf-debug-fixed PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
