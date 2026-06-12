@@ -32,6 +32,15 @@ void RateAndStateBase::prepare(std::size_t faultNo, FacetInfo const& info,
     auto coords =
         Tensor(fault_[faultNo].template get<Coords>().data()->data(), cl_->mapResultInfo(nbf));
     cl_->map(info.up[0], geoE_q[info.localNo[0]], coords);
+
+    // DEBUG: print nodal coordinates to verify basis orientation
+    static int count = 0;
+    if (count < 10) { // Limit output per rank
+        std::cout << "DEBUG: faultNo " << faultNo
+                  << " up[0] GID " << cl_->mesh().elements().l2cg(info.up[0])
+                  << " Nodal Coords[0]: " << coords.data()[0] << ", " << coords.data()[1] << ", " << coords.data()[2] << std::endl;
+        count++;
+    }
 }
 
 } // namespace tndm

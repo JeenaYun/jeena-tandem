@@ -1,47 +1,46 @@
-#include "SeasQDDiscreteGreenOperator.h"
-#include "common/PetscLoggingUtils.h"
-#include "common/PetscUtil.h"
+#include "RateAndStateBase.h"
 
-#include "form/RefElement.h"
-#include "parallel/LocalGhostCompositeView.h"
-#include "util/Stopwatch.h"
+#include "basis/WarpAndBlend.h"
 
-#include <cassert>
-#include <filesystem>
-namespace fs = std::filesystem;
+#include <algorithm>
+#include <memory>
 
 namespace tndm {
 
-GreensFunctionIndices::GreensFunctionIndices(SeasQDDiscreteGreenOperator const& op) : n_bs(1) {
-    slip_block_size = op.base::friction().slip_block_size();
-    num_local_elements = op.base::adapter().num_local_elements();
-    m_bs = op.base::adapter().traction_block_size();
-    m = num_local_elements * m_bs;
-    n = num_local_elements * slip_block_size * n_bs;
-    comm = op.base::comm();
-    MPI_Comm_rank(comm, &rank);
-
-    mb_offset = 0;
-    nb_offset = 0;
-    MPI_Scan(&num_local_elements, &mb_offset, 1, MPIU_INT, MPI_SUM, comm);
-    mb_offset -= num_local_elements;
-    MPI_Scan(&n, &nb_offset, 1, MPIU_INT, MPI_SUM, comm);
-    nb_offset -= n;
+auto RateAndStateBase::Space() -> NodalRefElement<DomainDimension - 1u> {
+    return NodalRefElement<DomainDimension - 1u>(
+        PolynomialDegree, WarpAndBlendFactory<DomainDimension - 1u>(), ALIGNMENT);
 }
 
-SeasQDDiscreteGreenOperator::SeasQDDiscreteGreenOperator(
-    std::unique_ptr<typename base::dg_t> dgop, std::unique_ptr<AbstractAdapterOperator> adapter,
-    std::unique_ptr<AbstractFrictionOperator> friction,
-    LocalSimplexMesh<DomainDimension> const& mesh, std::optional<std::string> prefix,
-    double gf_checkpoint_every_nmins, bool matrix_free, MGConfig const& mg_config)
-    : base(std::move(dgop), std::move(adapter), std::move(friction), matrix_free, mg_config) {
+RateAndStateBase::RateAndStateBase(std::shared_ptr<Curvilinear<DomainDimension>> cl)
+    : cl_(std::move(cl)), space_(Space()) {
 
-    int rank;
+    for (std::size_t f = 0; f < DomainDimension + 1u; ++f) {
+        auto facetParam = cl_->facetParam(f, space_.refNodes());
+        geoE_q.emplace_back(cl_->evaluateBasisAt(facetParam));
+    }
+}
 
-    MPI_Comm_rank(base::comm(), &rank);
-    // if prefix is not empty, set filenames and mark checkpoint_enabled_ = true
+void RateAndStateBase::begin_preparation(std::size_t numFaultFaces) {
+    auto nbf = space_.numBasisFunctions();
+    fault_.setStorage(std::make_shared<fault_t>(numFaultFaces * nbf), 0u, numFaultFaces, nbf);
+}
 
-    checkpoint_every_nmins_ = gf_checkpoint_every_nmins;
+void RateAndStateBase::prepare(std::size_t faultNo, FacetInfo const& info,
+                               LinearAllocator<double>&) {
+    auto nbf = space_.numBasisFunctions();
+    auto coords =
+        Tensor(fault_[faultNo].template get<Coords>().data()->data(), cl_->mapResultInfo(nbf));
+    cl_->map(info.up[0], geoE_q[info.localNo[0]], coords);
+
+    // DEBUG: print nodal coordinates to verify basis orientation
+    std::cout << "NODAL_COORD_CHECK: Facet GID " << cl_->mesh().facets().l2cg(info.fctNo)
+              << " up[0] GID " << cl_->mesh().elements().l2cg(info.up[0])
+              << " Nodal Coords[0]: " << coords.data()[0] << ", " << coords.data()[1] << ", " << coords.data()[2] << std::endl;
+}
+
+} // namespace tndm
+= gf_checkpoint_every_nmins;
 
     if (prefix.has_value()) {
         std::string sprefix = prefix.value_or("");
@@ -600,71 +599,22 @@ void SeasQDDiscreteGreenOperator::get_discrete_greens_function(
 
     /* NEW LINES START */
     {
-        // LOAD EXISTING GF AND COMPARE WITH WHAT IS IN G_
-        // PetscBool gf_hack = PETSC_FALSE;
-        // CHKERRTHROW(PetscOptionsGetBool(NULL, NULL, "-gf_check_hack", &gf_hack, NULL));
+        int rank;
+        MPI_Comm_rank(base::comm(), &rank);
+        auto const& fault_map = base::adapter().fault_map();
+        auto const& info_vec = base::domain().topo().fctInfo();
         
-        PetscBool found = PETSC_FALSE;
-        char load_path_prefix[PETSC_MAX_PATH_LEN];
-        CHKERRTHROW(PetscOptionsGetString(NULL, NULL, "-saved_gf_path", load_path_prefix, PETSC_MAX_PATH_LEN-1, &found));
-        // if (gf_hack) {
-        if (found) {
-            PetscViewer v;
-            Mat Gfromfile;
-            GreensFunctionIndices ind(*this);
-            PetscInt M, N, commsize_checkpoint, current_gf, start_row, start_col;
-            char gf_fname[PETSC_MAX_PATH_LEN];
-            CHKERRTHROW(PetscSNPrintf(gf_fname, PETSC_MAX_PATH_LEN-1, "%s/gf_mat.bin", load_path_prefix));
-
-            CHKERRTHROW(MatCreateDense(PetscObjectComm((PetscObject)G_), ind.m, ind.n, PETSC_DECIDE, PETSC_DECIDE, nullptr, &Gfromfile));
-            CHKERRTHROW(MatSetBlockSizes(Gfromfile, ind.m_bs, ind.n_bs));
-            CHKERRTHROW(MatGetSize(Gfromfile, &M, &N));
-
-            // CHKERRTHROW(PetscViewerBinaryOpen(PetscObjectComm((PetscObject)G_),"/home/jyun/softwares/project-tandem/build-gf-debug-2d-p6/setups/gf/gf_mat.bin", FILE_MODE_READ, &v));
-            CHKERRTHROW(PetscViewerBinaryOpen(PetscObjectComm((PetscObject)G_), gf_fname, FILE_MODE_READ, &v));
-            CHKERRTHROW(PetscViewerBinarySetUseMPIIO(v, PETSC_TRUE));
-            CHKERRTHROW(PetscViewerBinaryRead(v, &commsize_checkpoint, 1, NULL, PETSC_INT));
-            CHKERRTHROW(PetscViewerBinaryRead(v, &current_gf, 1, NULL, PETSC_INT));
-            CHKERRTHROW(MatLoad(Gfromfile, v));
-            CHKERRTHROW(PetscViewerDestroy(&v));
-
-            // DIFF HERE
-            CHKERRTHROW(MatAXPY(Gfromfile, -1.0, G_, SAME_NONZERO_PATTERN));
-            {
-                PetscScalar *array;
-                PetscScalar amax=-1.0,amin=1.0e32;
-                MatGetLocalSize(Gfromfile,&M,&N);
-                MatDenseGetArray(Gfromfile,&array);
-                for (PetscInt ii=0; ii<M*N; ii++) {
-                    array[ii] = PetscAbsScalar(array[ii]);
-                    if (array[ii] > amax) { amax = array[ii]; }
-                    if (array[ii] < amin) { amin = array[ii]; }
-                }
-                MatDenseRestoreArray(Gfromfile,&array);
-                MPI_Allreduce(MPI_IN_PLACE, &amax, 1, MPIU_SCALAR, MPIU_MAX, PetscObjectComm((PetscObject)G_));
-                MPI_Allreduce(MPI_IN_PLACE, &amin, 1, MPIU_SCALAR, MPIU_MIN, PetscObjectComm((PetscObject)G_));
-                
-                PetscPrintf(PetscObjectComm((PetscObject)G_),"[G - G_file]_max %1.15e\n",amax);
-                PetscPrintf(PetscObjectComm((PetscObject)G_),"[G - G_file]_min %1.15e\n",amin);
-
-                MatGetOwnershipRange(Gfromfile,&start_row,NULL);
-                MatGetOwnershipRangeColumn(Gfromfile,&start_col,NULL);
-                MatDenseGetArray(Gfromfile,&array);
-                for (PetscInt ii=0; ii<M; ii++) {
-                    for (PetscInt jj=0; jj<N; jj++) {
-                        PetscScalar val = array[ii + jj * M];
-                        if (val > 1.0e-6) {
-                            PetscSynchronizedPrintf(PetscObjectComm((PetscObject)G_), "DIFF row %ld, %ld | col %ld, %ld | diff %1.14e\n",start_row+ii, ii, start_col+jj, jj, val);
-                        }
-                   }
-                }
-                PetscSynchronizedFlush(PetscObjectComm((PetscObject)G_), PETSC_STDOUT);
-                MatDenseRestoreArray(Gfromfile,&array);
-            }
-
-            CHKERRTHROW(MatDestroy(&Gfromfile));
+        for (std::size_t bndNo = 0; bndNo < fault_map.local_size(); ++bndNo) {
+            std::size_t fctNo = fault_map.fctNo(bndNo);
+            auto const& info = info_vec[fctNo];
+            
+            PetscSynchronizedPrintf(PetscObjectComm((PetscObject)G_), 
+                "ORIENTATION_CHECK: Facet GID %lu | up[0] GID %lu | up[1] GID %lu\n",
+                (unsigned long)mesh.facets().l2cg(fctNo),
+                (unsigned long)mesh.elements().l2cg(info.up[0]),
+                (unsigned long)mesh.elements().l2cg(info.up[1]));
         }
-
+        PetscSynchronizedFlush(PetscObjectComm((PetscObject)G_), PETSC_STDOUT);
     }
     /* NEW LINES END */
 
