@@ -603,11 +603,11 @@ void SeasQDDiscreteGreenOperator::get_discrete_greens_function(
         int rank;
         MPI_Comm_rank(base::comm(), &rank);
         auto const& fault_map = base::adapter().fault_map();
-        auto const& info_vec = base::domain().topo().fctInfo();
+        auto const& topo = base::domain().topo();
         
         for (std::size_t bndNo = 0; bndNo < fault_map.local_size(); ++bndNo) {
             std::size_t fctNo = fault_map.fctNo(bndNo);
-            auto const& info = info_vec[fctNo];
+            auto const& info = topo.info(fctNo);
             
             PetscSynchronizedPrintf(PetscObjectComm((PetscObject)G_), 
                 "ORIENTATION_CHECK: Facet GID %lu | up[0] GID %lu | up[1] GID %lu\n",
@@ -622,7 +622,7 @@ void SeasQDDiscreteGreenOperator::get_discrete_greens_function(
     if (checkpoint_enabled_) {
         // Write out the operator whenever the fully assembled operator was not loaded from file
         if (n_gfloaded != n_gf) {
-            write_discrete_greens_operator(mesh, current_gf, n_gf);
+            write_discrete_greens_operator(mesh, n_gf, n_gf);
         }
     }
 }
