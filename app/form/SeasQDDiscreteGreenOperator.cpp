@@ -595,9 +595,6 @@ void SeasQDDiscreteGreenOperator::get_discrete_greens_function(
         }
     }
 
-    // Assemble as many GFs as possible in the range [current_gf, n_gf)
-    partial_assemble_discrete_greens_function(mesh, n_gfloaded, n_gf);
-
     /* NEW LINES START */
     {
         int rank;
@@ -616,8 +613,16 @@ void SeasQDDiscreteGreenOperator::get_discrete_greens_function(
                 (unsigned long)info.g_up[1]);
         }
         PetscSynchronizedFlush(PetscObjectComm((PetscObject)G_), PETSC_STDOUT);
+
+        // HARD EXIT for debugging
+        PetscPrintf(PetscObjectComm((PetscObject)G_), "HARD EXIT after orientation check.\n");
+        PetscFinalize();
+        exit(0);
     }
     /* NEW LINES END */
+
+    // Assemble as many GFs as possible in the range [current_gf, n_gf)
+    partial_assemble_discrete_greens_function(mesh, n_gfloaded, n_gf);
 
     if (checkpoint_enabled_) {
         // Write out the operator whenever the fully assembled operator was not loaded from file

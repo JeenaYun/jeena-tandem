@@ -39,7 +39,7 @@ public:
 
     void begin_preparation(std::size_t numFaultFaces);
     void prepare(std::size_t faultNo, FacetInfo const& info, LinearAllocator<double>&);
-    void end_preparation() {}
+    void end_preparation();
 
     auto const& space() const { return space_; }
 

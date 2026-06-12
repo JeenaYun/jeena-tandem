@@ -2,6 +2,8 @@
 
 #include "basis/WarpAndBlend.h"
 
+#include <petscsys.h>
+
 #include <algorithm>
 #include <memory>
 
@@ -34,8 +36,12 @@ void RateAndStateBase::prepare(std::size_t faultNo, FacetInfo const& info,
     cl_->map(info.up[0], geoE_q[info.localNo[0]], coords);
 
     // DEBUG: print nodal coordinates to verify basis orientation
-    std::cout << "NODAL_COORD_CHECK: up[0] GID " << info.g_up[0]
-              << " Nodal Coords[0]: " << coords.data()[0] << ", " << coords.data()[1] << ", " << coords.data()[2] << std::endl;
+    PetscSynchronizedPrintf(PETSC_COMM_WORLD,
+                            "NODAL_COORD_CHECK: up[0] GID %lu Nodal Coords[0]: %f, %f, %f\n",
+                            (unsigned long)info.g_up[0], coords.data()[0], coords.data()[1],
+                            coords.data()[2]);
 }
+
+void RateAndStateBase::end_preparation() { PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT); }
 
 } // namespace tndm
