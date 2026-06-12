@@ -613,11 +613,6 @@ void SeasQDDiscreteGreenOperator::get_discrete_greens_function(
                 (unsigned long)info.g_up[1]);
         }
         PetscSynchronizedFlush(PetscObjectComm((PetscObject)G_), PETSC_STDOUT);
-
-        // HARD EXIT for debugging
-        PetscPrintf(PetscObjectComm((PetscObject)G_), "HARD EXIT after orientation check.\n");
-        PetscFinalize();
-        exit(0);
     }
     /* NEW LINES END */
 
