@@ -1,46 +1,47 @@
-#include "RateAndStateBase.h"
+#include "SeasQDDiscreteGreenOperator.h"
+#include "common/PetscLoggingUtils.h"
+#include "common/PetscUtil.h"
 
-#include "basis/WarpAndBlend.h"
+#include "form/RefElement.h"
+#include "parallel/LocalGhostCompositeView.h"
+#include "util/Stopwatch.h"
 
-#include <algorithm>
-#include <memory>
+#include <cassert>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 namespace tndm {
 
-auto RateAndStateBase::Space() -> NodalRefElement<DomainDimension - 1u> {
-    return NodalRefElement<DomainDimension - 1u>(
-        PolynomialDegree, WarpAndBlendFactory<DomainDimension - 1u>(), ALIGNMENT);
+GreensFunctionIndices::GreensFunctionIndices(SeasQDDiscreteGreenOperator const& op) : n_bs(1) {
+    slip_block_size = op.base::friction().slip_block_size();
+    num_local_elements = op.base::adapter().num_local_elements();
+    m_bs = op.base::adapter().traction_block_size();
+    m = num_local_elements * m_bs;
+    n = num_local_elements * slip_block_size * n_bs;
+    comm = op.base::comm();
+    MPI_Comm_rank(comm, &rank);
+
+    mb_offset = 0;
+    nb_offset = 0;
+    MPI_Scan(&num_local_elements, &mb_offset, 1, MPIU_INT, MPI_SUM, comm);
+    mb_offset -= num_local_elements;
+    MPI_Scan(&n, &nb_offset, 1, MPIU_INT, MPI_SUM, comm);
+    nb_offset -= n;
 }
 
-RateAndStateBase::RateAndStateBase(std::shared_ptr<Curvilinear<DomainDimension>> cl)
-    : cl_(std::move(cl)), space_(Space()) {
+SeasQDDiscreteGreenOperator::SeasQDDiscreteGreenOperator(
+    std::unique_ptr<typename base::dg_t> dgop, std::unique_ptr<AbstractAdapterOperator> adapter,
+    std::unique_ptr<AbstractFrictionOperator> friction,
+    LocalSimplexMesh<DomainDimension> const& mesh, std::optional<std::string> prefix,
+    double gf_checkpoint_every_nmins, bool matrix_free, MGConfig const& mg_config)
+    : base(std::move(dgop), std::move(adapter), std::move(friction), matrix_free, mg_config) {
 
-    for (std::size_t f = 0; f < DomainDimension + 1u; ++f) {
-        auto facetParam = cl_->facetParam(f, space_.refNodes());
-        geoE_q.emplace_back(cl_->evaluateBasisAt(facetParam));
-    }
-}
+    int rank;
 
-void RateAndStateBase::begin_preparation(std::size_t numFaultFaces) {
-    auto nbf = space_.numBasisFunctions();
-    fault_.setStorage(std::make_shared<fault_t>(numFaultFaces * nbf), 0u, numFaultFaces, nbf);
-}
+    MPI_Comm_rank(base::comm(), &rank);
+    // if prefix is not empty, set filenames and mark checkpoint_enabled_ = true
 
-void RateAndStateBase::prepare(std::size_t faultNo, FacetInfo const& info,
-                               LinearAllocator<double>&) {
-    auto nbf = space_.numBasisFunctions();
-    auto coords =
-        Tensor(fault_[faultNo].template get<Coords>().data()->data(), cl_->mapResultInfo(nbf));
-    cl_->map(info.up[0], geoE_q[info.localNo[0]], coords);
-
-    // DEBUG: print nodal coordinates to verify basis orientation
-    std::cout << "NODAL_COORD_CHECK: Facet GID " << cl_->mesh().facets().l2cg(info.fctNo)
-              << " up[0] GID " << cl_->mesh().elements().l2cg(info.up[0])
-              << " Nodal Coords[0]: " << coords.data()[0] << ", " << coords.data()[1] << ", " << coords.data()[2] << std::endl;
-}
-
-} // namespace tndm
-= gf_checkpoint_every_nmins;
+    checkpoint_every_nmins_ = gf_checkpoint_every_nmins;
 
     if (prefix.has_value()) {
         std::string sprefix = prefix.value_or("");
@@ -611,8 +612,8 @@ void SeasQDDiscreteGreenOperator::get_discrete_greens_function(
             PetscSynchronizedPrintf(PetscObjectComm((PetscObject)G_), 
                 "ORIENTATION_CHECK: Facet GID %lu | up[0] GID %lu | up[1] GID %lu\n",
                 (unsigned long)mesh.facets().l2cg(fctNo),
-                (unsigned long)mesh.elements().l2cg(info.up[0]),
-                (unsigned long)mesh.elements().l2cg(info.up[1]));
+                (unsigned long)info.g_up[0],
+                (unsigned long)info.g_up[1]);
         }
         PetscSynchronizedFlush(PetscObjectComm((PetscObject)G_), PETSC_STDOUT);
     }
@@ -621,7 +622,7 @@ void SeasQDDiscreteGreenOperator::get_discrete_greens_function(
     if (checkpoint_enabled_) {
         // Write out the operator whenever the fully assembled operator was not loaded from file
         if (n_gfloaded != n_gf) {
-            write_discrete_greens_operator(mesh, n_gf, n_gf);
+            write_discrete_greens_operator(mesh, current_gf, n_gf);
         }
     }
 }
